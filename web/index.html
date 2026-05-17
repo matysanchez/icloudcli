@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>icloudcli — iCloud CLI for macOS | Photos, Messages &amp; Contacts from the Terminal</title>
+  <meta name="description" content="Open-source macOS CLI to query and manage your iCloud data from the terminal — Photos, Messages, Contacts, and more. Find storage hogs, search conversations, export contacts — no API token, no login.">
+  <link rel="canonical" href="https://icloudcli.com">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="icloudcli — iCloud CLI for macOS">
+  <meta property="og:description" content="Query, audit, and automate from the terminal. Photos, Messages, Contacts — reads local SQLite directly. No API token, no login. Agent-ready JSON output.">
+  <meta property="og:url" content="https://icloudcli.com">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://icloudcli.com/og.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="icloudcli — Query your iCloud Photos library from the terminal">
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="icloudcli — iCloud CLI for macOS">
+  <meta name="twitter:description" content="Photos, Messages, Contacts from the terminal. Reads local SQLite directly — no API token, no login.">
+  <meta name="twitter:image" content="https://icloudcli.com/og.png">
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☁️</text></svg>">
+
+  <!-- Pixel font: Geist Pixel via CDN, Pixelify Sans as fallback -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- JSON-LD structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "icloudcli",
+    "alternateName": "icloud-pp-cli",
+    "description": "Open-source macOS command-line tool that reads your iCloud Photos library directly from SQLite. Find large files, audit storage by year, delete storage hogs, and automate with agent-ready JSON output.",
+    "url": "https://icloudcli.com",
+    "downloadUrl": "https://github.com/matysanchez/icloudcli",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "macOS 13+",
+    "softwareVersion": "0.1.0",
+    "license": "https://www.apache.org/licenses/LICENSE-2.0",
+    "author": { "@type": "Person", "name": "Matias Sanchez" },
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "keywords": "iCloud Photos CLI, iMessage CLI, iCloud Contacts CLI, macOS terminal, iCloud storage management, Photos library, Messages chat.db, Contacts SQLite, command line, developer tools"
+  }
+  </script>
+  <style>
+    @font-face {
+      font-family: 'Geist Pixel';
+      src: url('https://cdn.jsdelivr.net/gh/vercel/geist-font@main/packages/next/dist/fonts/geist-pixel/GeistPixel-Square.woff2') format('woff2');
+      font-weight: 400 700;
+      font-display: swap;
+    }
+
+    /* ── tokens ──────────────────────────────────────────────────── */
+    :root {
+      --bg:          #ffffff;
+      --bg-raised:   #f7f7f7;
+      --border:      #e8e8e8;
+      --text:        #111111;
+      --text-muted:  #6b6b6b;
+      --accent:      #0070f3;
+      --accent-dim:  #e8f0fe;
+      --term-bg:     #0d1117;
+      --term-text:   #e6edf3;
+      --term-prompt: #58a6ff;
+      --term-output: #8b949e;
+      --tag-coming:  #f0f0f0;
+      --tag-coming-text: #666;
+      --radius:      10px;
+      --mono: 'SF Mono', 'Geist Mono', 'Cascadia Code', 'Fira Code', ui-monospace, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      --pixel: 'Geist Pixel', 'Pixelify Sans', var(--mono);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:          #0a0a0a;
+        --bg-raised:   #141414;
+        --border:      #242424;
+        --text:        #ededed;
+        --text-muted:  #888888;
+        --accent:      #3b82f6;
+        --accent-dim:  #1a2332;
+        --tag-coming:  #1a1a1a;
+        --tag-coming-text: #888;
+      }
+    }
+
+    [data-theme="light"] {
+      --bg: #ffffff; --bg-raised: #f7f7f7; --border: #e8e8e8;
+      --text: #111111; --text-muted: #6b6b6b; --accent: #0070f3;
+      --accent-dim: #e8f0fe; --tag-coming: #f0f0f0; --tag-coming-text: #666;
+    }
+    [data-theme="dark"] {
+      --bg: #0a0a0a; --bg-raised: #141414; --border: #242424;
+      --text: #ededed; --text-muted: #888888; --accent: #3b82f6;
+      --accent-dim: #1a2332; --tag-coming: #1a1a1a; --tag-coming-text: #888;
+    }
+
+    /* ── reset ───────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      transition: background .2s, color .2s;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── layout ──────────────────────────────────────────────────── */
+    .container { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── nav ─────────────────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: color-mix(in srgb, var(--bg) 85%, transparent);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    nav .container {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .nav-left  { display: flex; align-items: center; gap: 12px; }
+    .nav-logo {
+      font-family: var(--pixel);
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: .02em;
+    }
+    .nav-logo:hover { text-decoration: none; }
+    .nav-right { display: flex; align-items: center; gap: 14px; }
+    .nav-link {
+      font-size: .85rem;
+      color: var(--text-muted);
+      transition: color .15s;
+    }
+    .nav-link:hover { color: var(--text); text-decoration: none; }
+    .nav-link.active {
+      color: var(--text);
+      font-weight: 600;
+      text-decoration: underline;
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 3px;
+    }
+
+    /* theme toggle */
+    .theme-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: none; border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 7px; cursor: pointer;
+      color: var(--text-muted); transition: border-color .15s, color .15s;
+      width: 30px; height: 30px;
+    }
+    .theme-btn:hover { border-color: var(--text-muted); color: var(--text); }
+    .theme-btn svg { display: none; }
+    .theme-btn[data-theme="light"]  .t-sun    { display: block; }
+    .theme-btn[data-theme="dark"]   .t-moon   { display: block; }
+    .theme-btn[data-theme="system"] .t-system { display: block; }
+
+    /* ── hero ────────────────────────────────────────────────────── */
+    #hero {
+      padding: 96px 0 80px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: .72rem;
+      color: var(--text-muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: 16px;
+    }
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -.04em;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .hero-sub {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin-bottom: 0;
+      line-height: 1.7;
+    }
+    /* ── hero two-column ───────────────────────────────── */
+    .hero-cols {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+    .hero-cloud-art {
+      font-family: var(--mono);
+      font-size: .55rem;
+      line-height: 1.35;
+      white-space: pre;
+      user-select: none;
+      pointer-events: none;
+      color: #3b82f6;
+    }
+    .install-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-bottom: 32px;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .install-bar code {
+      font-family: var(--mono);
+      font-size: .9rem;
+      color: var(--text);
+    }
+    .copy-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-muted); font-size: .8rem;
+      padding: 2px 8px; border-radius: 4px;
+      border: 1px solid var(--border);
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .copy-btn:hover { color: var(--text); border-color: var(--text-muted); }
+    .copy-btn.copied { color: #30d158; border-color: #30d158; }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+    .hero-star { display: flex; justify-content: center; margin-top: 18px; }
+    .install-label {
+      font-family: var(--mono); font-size: .7rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .08em;
+      color: var(--text-muted); margin-bottom: 10px;
+      text-align: center;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 20px; border-radius: 8px;
+      font-size: .9rem; font-weight: 500;
+      cursor: pointer; transition: all .15s;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--text); color: var(--bg);
+      border: 1px solid var(--text);
+    }
+    .btn-primary:hover { opacity: .85; text-decoration: none; }
+    .btn-secondary {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--text-muted); text-decoration: none; }
+
+    /* ── sections ────────────────────────────────────────────────── */
+    section { padding: 80px 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+    .section-label {
+      font-family: var(--mono);
+      font-size: .75rem;
+      color: var(--text-muted);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    h2 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      letter-spacing: -.03em;
+      margin-bottom: 8px;
+    }
+    .section-intro {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin-bottom: 48px;
+      max-width: 500px;
+    }
+
+    /* ── examples ────────────────────────────────────────────────── */
+    .examples { display: flex; flex-direction: column; gap: 32px; }
+    .example {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .example-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px;
+    }
+    .example-meta { flex: 1; }
+    .example-title {
+      font-size: 1rem; font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .example-desc {
+      font-size: .875rem; color: var(--text-muted); line-height: 1.5;
+    }
+    .badge {
+      font-size: .7rem; font-weight: 600;
+      padding: 2px 8px; border-radius: 99px;
+      white-space: nowrap; flex-shrink: 0;
+      letter-spacing: .04em; text-transform: uppercase;
+    }
+    .badge-live { background: #dcfce7; color: #15803d; }
+    .badge-coming { background: var(--tag-coming); color: var(--tag-coming-text); }
+    @media (prefers-color-scheme: dark) {
+      .badge-live { background: #052e16; color: #4ade80; }
+    }
+    [data-theme="dark"] .badge-live { background: #052e16; color: #4ade80; }
+    [data-theme="light"] .badge-live { background: #dcfce7; color: #15803d; }
+
+    .term {
+      background: var(--term-bg);
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: .82rem;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+    .term .prompt { color: var(--term-prompt); user-select: none; }
+    .term .cmd { color: var(--term-text); }
+    .term .out { color: var(--term-output); }
+    .term .hi  { color: #ff7b72; }   /* red — large files  */
+    .term .med { color: #e3b341; }   /* yellow — medium    */
+    .term .ok  { color: #3fb950; }   /* green — small      */
+    .term .num { color: #79c0ff; }   /* blue — numbers     */
+    .term .key { color: #d2a8ff; }   /* purple — keys      */
+
+    /* ── commands ────────────────────────────────────────────────── */
+    .cmd-groups { display: flex; flex-direction: column; gap: 20px; }
+    .cmd-group {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .cmd-group-header {
+      padding: 12px 16px;
+      background: var(--bg-raised);
+      font-family: var(--mono);
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .cmd-list { display: flex; flex-direction: column; }
+    .cmd-row {
+      display: grid;
+      grid-template-columns: 200px 1fr auto;
+      gap: 16px;
+      align-items: baseline;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      font-size: .875rem;
+    }
+    .cmd-row code {
+      font-family: var(--mono);
+      font-size: .82rem;
+      color: var(--accent);
+    }
+    .cmd-row-desc { color: var(--text-muted); }
+    .cmd-row-badge { font-size: .7rem; }
+
+    /* ── platform badge ─────────────────────────────────────────── */
+    .platform-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--bg-raised);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: .78rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .platform-icon { font-size: .9rem; line-height: 1; }
+    .platform-badge strong { color: var(--text); }
+
+    /* ── install ─────────────────────────────────────────────────── */
+    .install-options { display: flex; flex-direction: column; gap: 20px; }
+    .install-option { }
+    .install-option-label {
+      font-size: .8rem; font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: .06em;
+      margin-bottom: 8px;
+    }
+    .code-block {
+      background: var(--term-bg);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-family: var(--mono);
+      font-size: .85rem;
+      color: var(--term-text);
+      overflow-x: auto;
+      position: relative;
+    }
+    .code-block .prompt { color: var(--term-prompt); user-select: none; }
+    .copy-block-btn {
+      position: absolute; top: 12px; right: 12px;
+      background: rgba(255,255,255,.08); border: none;
+      border-radius: 5px; padding: 4px 10px;
+      font-size: .75rem; color: var(--term-output);
+      cursor: pointer; transition: all .15s;
+    }
+    .copy-block-btn:hover { background: rgba(255,255,255,.16); color: #fff; }
+    .copy-block-btn.copied { color: #30d158; }
+
+    /* ── terminal line blocks ────────────────────────────────────── */
+    .term .tl {
+      display: block;
+      white-space: pre;
+      min-height: 1.7em;
+    }
+    .term[data-animate] .tl {
+      opacity: 0;
+      transition: opacity .1s ease;
+    }
+    .tl-cursor {
+      display: inline-block;
+      width: .45em;
+      height: .85em;
+      background: var(--term-prompt);
+      vertical-align: text-bottom;
+      margin-left: 1px;
+      animation: cur-blink 1s step-end infinite;
+    }
+    @keyframes cur-blink { 50% { opacity: 0; } }
+
+    /* ── footer ──────────────────────────────────────────────────── */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+    }
+    footer .container {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 16px;
+    }
+    .footer-left {
+      font-family: var(--mono);
+      font-size: .82rem;
+      color: var(--text-muted);
+      display: flex; align-items: center; gap: 16px;
+    }
+    .footer-right {
+      font-size: .82rem;
+      color: var(--text-muted);
+      display: flex; gap: 20px;
+    }
+    .footer-right a { color: var(--text-muted); }
+    .footer-right a:hover { color: var(--text); }
+
+    /* ── agent slider ─────────────────────────────────────────────── */
+    .agents-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 24px;
+      margin-bottom: 28px;
+    }
+    .agents-sub {
+      font-size: .9rem; color: var(--text-muted);
+      margin-top: 6px; line-height: 1.6; max-width: 480px;
+    }
+    .agents-sub strong { color: var(--text); font-weight: 600; }
+    .slider-nav {
+      display: flex; gap: 8px; flex-shrink: 0;
+      align-self: flex-end; padding-bottom: 6px;
+    }
+    .slider-nav-btn {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--bg-raised); border: 1px solid var(--border);
+      color: var(--text-muted); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .slider-nav-btn:hover { border-color: var(--text-muted); color: var(--text); }
+    .slider-nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+    .agent-slider-outer { margin: 0 -24px; }
+    .agent-slider {
+      display: flex; gap: 12px;
+      overflow-x: auto; scroll-snap-type: x mandatory;
+      scroll-padding-left: 24px;
+      padding: 4px 24px 20px;
+      scrollbar-width: none; cursor: grab;
+      -webkit-overflow-scrolling: touch;
+    }
+    .agent-slider::-webkit-scrollbar { display: none; }
+    .agent-slider.is-dragging { cursor: grabbing; scroll-snap-type: none; }
+    .agent-card {
+      flex: 0 0 296px; scroll-snap-align: start;
+      border-radius: 18px; border: 1px solid var(--border);
+      overflow: hidden; display: flex; flex-direction: column;
+      background: var(--bg-raised);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .agent-card:hover {
+      border-color: var(--card-accent, var(--accent));
+      box-shadow: 0 8px 32px rgba(0,0,0,.1);
+    }
+    .agent-card-body {
+      padding: 22px 20px 16px; flex-shrink: 0;
+    }
+    .agent-card-tag {
+      font-size: .64rem; font-weight: 700; letter-spacing: .09em;
+      text-transform: uppercase; color: var(--card-accent, var(--accent));
+      margin-bottom: 8px;
+    }
+    .agent-card-title {
+      font-size: 1.2rem; font-weight: 700;
+      line-height: 1.2; letter-spacing: -.025em; margin-bottom: 8px;
+      color: var(--text);
+    }
+    .agent-card-desc { font-size: .8rem; color: var(--text-muted); line-height: 1.5; }
+    .agent-card-media {
+      position: relative; flex: 1; min-height: 190px;
+      background: color-mix(in srgb, var(--card-accent, var(--accent)) 7%, var(--bg));
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .agent-card-copy {
+      position: absolute; bottom: 12px; right: 12px;
+      height: 30px; border-radius: 999px; padding: 0 13px;
+      background: var(--text); color: var(--bg);
+      border: none; cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+      font-size: .74rem; font-weight: 600; font-family: var(--sans);
+      letter-spacing: -.01em; white-space: nowrap;
+      transition: transform .15s, background .15s; z-index: 2;
+      box-shadow: 0 2px 10px rgba(0,0,0,.2);
+    }
+    .agent-card-copy:hover { transform: scale(1.04); }
+    .agent-card-copy.copied { background: #30d158; color: #fff; }
+
+    /* placeholder layouts */
+    .ph-fan-card {
+      position: absolute; width: 110px; height: 74px; border-radius: 7px;
+      background: var(--card-accent, var(--accent));
+      border: 2px solid rgba(255,255,255,.15);
+      box-shadow: 0 4px 14px rgba(0,0,0,.2);
+    }
+    .ph-fan-card:nth-child(1) { opacity: .45; transform: rotate(-14deg) translate(-42px, 10px); }
+    .ph-fan-card:nth-child(2) { opacity: .7;  transform: rotate(-3deg)  translate(-10px, 3px); }
+    .ph-fan-card:nth-child(3) { opacity: .9;  transform: rotate(9deg)   translate(30px, -5px); }
+    .ph-stamp-img {
+      width: 130px; height: 130px; border-radius: 3px;
+      background: var(--card-accent, var(--accent)); opacity: .55;
+      border: 7px solid rgba(255,255,255,.85);
+      box-shadow: 0 8px 28px rgba(0,0,0,.25); transform: rotate(-4deg);
+    }
+    .agent-card-media.ph-stats { flex-direction: column; gap: 4px; }
+    .ph-stats-num {
+      font-size: 3.2rem; font-weight: 800; letter-spacing: -.05em;
+      color: var(--card-accent, var(--accent)); line-height: 1;
+      text-align: center; font-family: var(--sans);
+    }
+    .ph-stats-label {
+      font-size: .7rem; color: var(--text-muted); text-align: center;
+      font-family: var(--mono); letter-spacing: .04em;
+    }
+    .ph-films-strip { display: flex; gap: 5px; }
+    .ph-films-frame {
+      width: 54px; height: 82px; border-radius: 4px;
+      background: var(--card-accent, var(--accent)); flex-shrink: 0;
+    }
+    .ph-films-frame:nth-child(1) { opacity: .3; }
+    .ph-films-frame:nth-child(2) { opacity: .6; }
+    .ph-films-frame:nth-child(3) { opacity: .8; }
+    .ph-films-frame:nth-child(4) { opacity: .45; }
+    .agent-card-media.ph-grid-3x2 {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 20px;
+      align-items: stretch; justify-items: stretch;
+    }
+    .agent-card-media.ph-grid-2x2 {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 22px;
+      align-items: stretch; justify-items: stretch;
+    }
+    .ph-grid-cell, .ph-photo { border-radius: 6px; background: var(--card-accent, var(--accent)); }
+    .ph-grid-cell { aspect-ratio: 16/10; }
+    .ph-photo     { aspect-ratio: 1; }
+    .ph-grid-cell:nth-child(1), .ph-photo:nth-child(1) { opacity: .55; }
+    .ph-grid-cell:nth-child(2), .ph-photo:nth-child(2) { opacity: .3;  }
+    .ph-grid-cell:nth-child(3), .ph-photo:nth-child(3) { opacity: .7;  }
+    .ph-grid-cell:nth-child(4), .ph-photo:nth-child(4) { opacity: .4;  }
+    .ph-grid-cell:nth-child(5)                         { opacity: .5;  }
+    .ph-grid-cell:nth-child(6)                         { opacity: .25; }
+    /* ── suggest card ────────────────────────────────────────────── */
+    .agent-suggest-card {
+      border-style: dashed; background: transparent;
+    }
+    .agent-suggest-card:hover {
+      border-color: var(--accent); box-shadow: none;
+    }
+    .agent-suggest-card .agent-card-body { background: none; flex: 1; }
+    .agent-suggest-actions {
+      padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
+      border-top: 1px dashed var(--border);
+    }
+    .agent-suggest-copy {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; background: var(--accent); color: #fff;
+      border: none; border-radius: 8px; padding: 11px;
+      font-size: .82rem; font-weight: 600; cursor: pointer;
+      transition: all .15s; font-family: var(--sans); letter-spacing: -.01em;
+    }
+    .agent-suggest-copy:hover { opacity: .85; }
+    .agent-suggest-copy.copied { background: #30d158; }
+    .agent-suggest-gh {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; color: var(--text-muted); background: transparent;
+      border: 1px solid var(--border); border-radius: 8px; padding: 10px;
+      font-size: .82rem; font-weight: 500; text-decoration: none;
+      transition: all .15s;
+    }
+    .agent-suggest-gh:hover { color: var(--text); border-color: var(--text-muted); text-decoration: none; }
+
+    /* ── star CTA ─────────────────────────────────────────────────── */
+    #star-cta {
+      background: #080d13;
+      padding: 110px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    #star-cta::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none; z-index: 0;
+    }
+
+    .star-cta-inner { position: relative; z-index: 2; }
+    .star-cta-icon {
+      font-size: 3.6rem; display: block; margin-bottom: 28px;
+      filter: drop-shadow(0 0 32px rgba(251,191,36,.55));
+    }
+    .star-cta-heading {
+      font-size: clamp(1.9rem, 4vw, 3.2rem);
+      font-weight: 700; color: #fff;
+      letter-spacing: -.04em; line-height: 1.1; margin-bottom: 18px;
+    }
+    .star-cta-sub {
+      font-size: 1rem; color: rgba(255,255,255,.7);
+      max-width: 380px; margin: 0 auto 44px; line-height: 1.75;
+    }
+    .star-cta-buttons {
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      margin-bottom: 8px;
+    }
+    .star-cta-widget {
+      display: flex; justify-content: center;
+      zoom: 2;
+    }
+    .star-cta-follow {
+      display: flex; justify-content: center;
+      zoom: 1.4;
+    }
+    .star-cta-note {
+      display: block; margin-top: 24px;
+      font-size: .76rem; color: rgba(255,255,255,.5);
+      font-family: var(--mono);
+    }
+
+    /* ── responsive ──────────────────────────────────────────────── */
+    @media (max-width: 780px) {
+      .hero-cols { grid-template-columns: 1fr; margin-bottom: 32px; }
+      .hero-cloud-art { display: none; }
+    }
+    @media (max-width: 700px) {
+      .agent-card { flex: 0 0 82vw; }
+      .agents-header { flex-direction: column; gap: 12px; }
+      .slider-nav { align-self: flex-start; }
+    }
+    @media (max-width: 600px) {
+      #hero { padding: 64px 0 56px; }
+      section { padding: 56px 0; }
+      h1 { font-size: 2rem; }
+      .cmd-row { grid-template-columns: 1fr; gap: 4px; }
+      .cmd-row-badge { display: none; }
+      .nav-link { display: none; }
+      footer .container { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── nav ──────────────────────────────────────────────────────── -->
+<nav>
+  <div class="container">
+    <div class="nav-left">
+      <a class="nav-logo" href="/">icloudcli</a>
+      <button class="theme-btn" id="themeToggle" data-theme="system" aria-label="Toggle theme">
+        <svg class="t-sun" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"/>
+          <line x1="12" y1="2"  x2="12" y2="4"/>  <line x1="12" y1="20" x2="12" y2="22"/>
+          <line x1="4.22" y1="4.22"   x2="5.64" y2="5.64"/>  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="2"  y1="12" x2="4"  y2="12"/>  <line x1="20" y1="12" x2="22" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg class="t-moon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <svg class="t-system" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <line x1="8" y1="21" x2="16" y2="21"/>
+          <line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+      </button>
+    </div>
+    <div class="nav-right">
+      <a class="nav-link" href="#examples">Examples</a>
+      <a class="nav-link" href="#agents">Agents</a>
+      <a class="nav-link" href="#commands">Commands</a>
+      <a class="nav-link" href="#install">Install</a>
+      <a class="github-button" id="gh-btn" href="https://github.com/matysanchez/icloudcli" data-color-scheme="no-preference: dark; light: dark; dark: light;" data-size="large" data-show-count="true" aria-label="Star matysanchez/icloudcli on GitHub">Star</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── hero ─────────────────────────────────────────────────────── -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-cols">
+      <div class="hero-content">
+        <div class="platform-badge">
+          <span class="platform-icon">&#xf8ff;</span>
+          <strong>macOS only</strong>
+        </div>
+
+        <h1>Your entire iCloud,<br>from the terminal.</h1>
+        <p class="hero-sub">
+          icloudcli reads your local SQLite databases directly — Photos, Messages, Contacts, and more.
+          No API token, no login. Find storage hogs, search conversations, export contacts,
+          and automate it all with JSON output.
+        </p>
+      </div>
+      <pre class="hero-cloud-art" aria-hidden="true">            ████    ████████████
+          ████████████████████████
+   ██   ██████████████████████████████
+  █████████████████████████████████████
+ ███████████████████████████████████████
+ ███████████████████████████████████████
+  █████████████████████████████████████
+    ██████████████████████████████████
+         ██████████████████████████</pre>
+    </div>
+
+    <p class="install-label">Quick Install</p>
+    <div class="install-bar">
+      <code id="installCmd">curl -fsSL https://icloudcli.com/install.sh | sh</code>
+      <button class="copy-btn" onclick="copyInstall(this)" aria-label="Copy install command">Copy</button>
+    </div>
+
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#install">Get started</a>
+      <a class="btn btn-secondary" href="https://github.com/matysanchez/icloudcli" target="_blank" rel="noopener">View on GitHub</a>
+    </div>
+    <p class="hero-eyebrow">Open Source · Apache-2.0</p>
+    <div class="hero-star">
+      <a class="github-button" id="gh-btn-hero" href="https://github.com/matysanchez/icloudcli" data-color-scheme="no-preference: dark; light: dark; dark: light;" data-size="large" data-show-count="true" aria-label="Star matysanchez/icloudcli on GitHub">Star</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── examples ─────────────────────────────────────────────────── -->
+<section id="examples">
+  <div class="container">
+    <p class="section-label">Use cases</p>
+    <h2>What you can do with icloudcli</h2>
+    <p class="section-intro">
+      Every command runs locally against your on-device databases — no network, no app launch. Pipe to <code style="font-family:var(--mono);font-size:.9em">jq</code> or use <code style="font-family:var(--mono);font-size:.9em">--agent</code> to wire it into any AI workflow.
+    </p>
+
+    <div class="examples">
+
+      <!-- 1. Free up space -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Find your heaviest files</div>
+            <div class="example-desc">Every row includes the UUID — copy it straight into <code style="font-family:var(--mono);font-size:.88em">photos delete</code> to free space without ever opening Photos.app.</div>
+          </div>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos top --limit 5</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">  #  Type   Size     Date        Filename           UUID</span></div>
+<div class="tl tl-out"><span class="hi">  1  video  9.78 GB  2025-06-19  IMG_2898.MOV       6799AE02-EE45-4469-8AC9-1443582A828E</span></div>
+<div class="tl tl-out"><span class="hi">  2  video  4.13 GB  2025-06-28  IMG_2901.MOV       C625E37E-F406-435E-B274-67088D9ABF5E</span></div>
+<div class="tl tl-out"><span class="hi">  3  video  3.96 GB  2026-05-01  IMG_3668.MOV       4D1C6E68-861D-4512-B09E-5E3D81571A1D</span></div>
+<div class="tl tl-out"><span class="med">  4  video  2.47 GB  2025-01-15  IMG_1262.MOV       02CB886E-51C1-4ED1-81E1-25F1EB275B0D</span></div>
+<div class="tl tl-out"><span class="ok">  5  photo  0.84 GB  2024-08-03  RAW_2024-08-03.dng 1A2B3C4D-5E6F-7890-ABCD-EF1234567890</span></div>
+        </div>
+      </div>
+
+      <!-- 2. Delete storage hogs -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Delete by UUID — no Photos.app needed</div>
+            <div class="example-desc">Grab UUIDs from <code style="font-family:var(--mono);font-size:.88em">photos top</code>, pass them to <code style="font-family:var(--mono);font-size:.88em">photos delete</code>. Always a dry run until you add <code style="font-family:var(--mono);font-size:.88em">--confirm</code>. Items stay in Recently Deleted for 30 days — fully recoverable.</div>
+          </div>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos delete \
+  6799AE02-EE45-4469-8AC9-1443582A828E \
+  C625E37E-F406-435E-B274-67088D9ABF5E</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">  </span><span class="med">→</span><span class="out"> 2025-06-19  IMG_2898.MOV  9.78 GB</span></div>
+<div class="tl tl-out"><span class="out">  </span><span class="med">→</span><span class="out"> 2025-06-28  Screen Recording 2025-06-28 at 4.30.51 PM.mov  4.13 GB</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">Dry run — 2 item(s) would be moved to Recently Deleted.</span></div>
+<div class="tl tl-out"><span class="out">Add --confirm to proceed.</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos delete --confirm \
+  6799AE02-EE45-4469-8AC9-1443582A828E \
+  C625E37E-F406-435E-B274-67088D9ABF5E</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="ok">  ✓ moved to Recently Deleted: IMG_2898.MOV</span></div>
+<div class="tl tl-out"><span class="ok">  ✓ moved to Recently Deleted: Screen Recording 2025-06-28 at 4.30.51 PM.mov</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">Done — 2 moved, 0 failed.</span></div>
+<div class="tl tl-out"><span class="out">Open Photos.app → Recently Deleted → Empty to permanently free space.</span></div>
+        </div>
+      </div>
+
+      <!-- 3. Pick the right plan -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Pick the right iCloud storage plan</div>
+            <div class="example-desc">Know your actual library size before upgrading. One number tells you whether you need 200 GB or 2 TB.</div>
+          </div>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos stats --agent | jq '{ items: .total_items, size_gb: .total_size_gb }'</span></div>
+<div class="tl tl-out"><span class="out">{</span></div>
+<div class="tl tl-out"><span class="out">  </span><span class="key">"items"</span><span class="out">: </span><span class="num">129464</span><span class="out">,</span></div>
+<div class="tl tl-out"><span class="out">  </span><span class="key">"size_gb"</span><span class="out">: </span><span class="num">794.31</span></div>
+<div class="tl tl-out"><span class="out">}</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">→ You need the 2 TB plan.</span></div>
+        </div>
+      </div>
+
+      <!-- 3. Audit by year -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Find which years are eating the most space</div>
+            <div class="example-desc">Spot the year that ballooned your library — usually the year you got a new iPhone.</div>
+          </div>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos storage --agent | jq '.by_year | sort_by(-.size_gb) | .[0:5]'</span></div>
+<div class="tl tl-out"><span class="out">[</span></div>
+<div class="tl tl-out"><span class="out">  { </span><span class="key">"label"</span><span class="out">: </span><span class="num">"2025"</span><span class="out">, </span><span class="key">"count"</span><span class="out">: </span><span class="num">20438</span><span class="out">, </span><span class="key">"size_gb"</span><span class="out">: </span><span class="num">187.26</span><span class="out"> },</span></div>
+<div class="tl tl-out"><span class="out">  { </span><span class="key">"label"</span><span class="out">: </span><span class="num">"2024"</span><span class="out">, </span><span class="key">"count"</span><span class="out">: </span><span class="num">18153</span><span class="out">, </span><span class="key">"size_gb"</span><span class="out">: </span><span class="num">151.17</span><span class="out"> },</span></div>
+<div class="tl tl-out"><span class="out">  { </span><span class="key">"label"</span><span class="out">: </span><span class="num">"2021"</span><span class="out">, </span><span class="key">"count"</span><span class="out">: </span><span class="num">14559</span><span class="out">, </span><span class="key">"size_gb"</span><span class="out">: </span><span class="num">123.23</span><span class="out"> },</span></div>
+<div class="tl tl-out"><span class="out">  { </span><span class="key">"label"</span><span class="out">: </span><span class="num">"2022"</span><span class="out">, </span><span class="key">"count"</span><span class="out">: </span><span class="num">15587</span><span class="out">, </span><span class="key">"size_gb"</span><span class="out">: </span><span class="num">115.47</span><span class="out"> },</span></div>
+<div class="tl tl-out"><span class="out">  { </span><span class="key">"label"</span><span class="out">: </span><span class="num">"2020"</span><span class="out">, </span><span class="key">"count"</span><span class="out">: </span><span class="num">17957</span><span class="out">, </span><span class="key">"size_gb"</span><span class="out">:  </span><span class="num">96.28</span><span class="out"> }</span></div>
+<div class="tl tl-out"><span class="out">]</span></div>
+        </div>
+      </div>
+
+      <!-- 4. Find big videos from a specific trip -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Find large videos from a specific time period</div>
+            <div class="example-desc">Narrow by year and month to target a trip or event. Combine with jq to filter by a size threshold.</div>
+          </div>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos videos --year 2024 --month 8 --agent \
+  | jq '[.[] | select(.size_gb > 0.5)]'</span></div>
+<div class="tl tl-out"><span class="out">[</span></div>
+<div class="tl tl-out"><span class="out">  {</span></div>
+<div class="tl tl-out"><span class="out">    </span><span class="key">"rank"</span><span class="out">: </span><span class="num">1</span><span class="out">, </span><span class="key">"filename"</span><span class="out">: </span><span class="num">"IMG_5820.MOV"</span><span class="out">, </span><span class="key">"size_gb"</span><span class="out">: </span><span class="num">1.84</span><span class="out">,</span></div>
+<div class="tl tl-out"><span class="out">    </span><span class="key">"date"</span><span class="out">: </span><span class="num">"2024-08-17"</span><span class="out">, </span><span class="key">"uuid"</span><span class="out">: </span><span class="num">"A1B2C3D4-E5F6-7890-ABCD-EF1234567890"</span></div>
+<div class="tl tl-out"><span class="out">  },</span></div>
+<div class="tl tl-out"><span class="out">  {</span></div>
+<div class="tl tl-out"><span class="out">    </span><span class="key">"rank"</span><span class="out">: </span><span class="num">2</span><span class="out">, </span><span class="key">"filename"</span><span class="out">: </span><span class="num">"IMG_5741.MOV"</span><span class="out">, </span><span class="key">"size_gb"</span><span class="out">: </span><span class="num">0.76</span><span class="out">,</span></div>
+<div class="tl tl-out"><span class="out">    </span><span class="key">"date"</span><span class="out">: </span><span class="num">"2024-08-12"</span><span class="out">, </span><span class="key">"uuid"</span><span class="out">: </span><span class="num">"B2C3D4E5-F6A7-8901-BCDE-F12345678901"</span></div>
+<div class="tl tl-out"><span class="out">  }</span></div>
+<div class="tl tl-out"><span class="out">]</span></div>
+        </div>
+      </div>
+
+      <!-- 5. Location (coming) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Search by location</div>
+            <div class="example-desc">Find all photos and videos taken in a specific city, neighborhood, or GPS bounding box.</div>
+          </div>
+          <span class="badge badge-coming">Coming</span>
+        </div>
+        <div class="term">
+<span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos search --location "Miami Beach" --type video --agent</span>
+<span class="out" style="opacity:.45">[ ... videos taken in Miami Beach ... ]</span>
+        </div>
+      </div>
+
+      <!-- 6. Natural language (coming) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Natural language queries</div>
+            <div class="example-desc">Ask in plain English. Powered by local embeddings — no data leaves your Mac.</div>
+          </div>
+          <span class="badge badge-coming">Coming</span>
+        </div>
+        <div class="term">
+<span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos ask "vacation videos longer than 2 minutes from last summer"</span>
+<span class="out" style="opacity:.45">[ ... matching results ... ]</span>
+        </div>
+      </div>
+
+      <!-- 7. People (coming) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Search by person</div>
+            <div class="example-desc">List or count photos featuring a named person from your Photos people album.</div>
+          </div>
+          <span class="badge badge-coming">Coming</span>
+        </div>
+        <div class="term">
+<span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos search --person "Mom" --year 2023 --agent</span>
+<span class="out" style="opacity:.45">[ ... photos featuring Mom from 2023 ... ]</span>
+        </div>
+      </div>
+
+      <!-- 8. Messages search (coming) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Search your iMessage conversations</div>
+            <div class="example-desc">Query <code style="font-family:var(--mono);font-size:.88em">chat.db</code> directly — search by contact, keyword, or date range. No iCloud API, just the local SQLite database macOS already keeps on your machine.</div>
+          </div>
+          <span class="badge badge-coming">Coming</span>
+        </div>
+        <div class="term">
+<span class="prompt">$ </span><span class="cmd">icloud-pp-cli messages search --from "Mom" --after 2025-01-01 --agent | jq '.[0]'</span>
+<span class="out" style="opacity:.45">{
+  "chat":   "Mom",
+  "date":   "2025-06-15",
+  "text":   "Are you coming for dinner?",
+  "handle": "+1 (305) 555-0183"
+}</span>
+        </div>
+      </div>
+
+      <!-- 9. Contacts export (coming) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Export and search your Contacts</div>
+            <div class="example-desc">Reads the AddressBook SQLite store directly. Export to JSON, search by name or email, pipe into scripts or AI workflows — no Contacts.app, no vCard wrangling.</div>
+          </div>
+          <span class="badge badge-coming">Coming</span>
+        </div>
+        <div class="term">
+<span class="prompt">$ </span><span class="cmd">icloud-pp-cli contacts list --agent | jq '[.[] | {name, email: .emails[0]}][0:3]'</span>
+<span class="out" style="opacity:.45">[
+  { "name": "Alex Rivera",  "email": "alex@example.com"   },
+  { "name": "Jordan Lee",   "email": "jordan@example.com" },
+  { "name": "Sam Torres",   "email": "sam@example.com"    }
+]</span>
+        </div>
+      </div>
+
+      <!-- 10. Find My (coming) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Check your Find My devices</div>
+            <div class="example-desc">List all devices registered to your Apple ID — name, last-seen timestamp, and battery level — straight from the local Find My cache.</div>
+          </div>
+          <span class="badge badge-coming">Coming</span>
+        </div>
+        <div class="term">
+<span class="prompt">$ </span><span class="cmd">icloud-pp-cli findmy devices</span>
+<span class="out" style="opacity:.45">  Device           Last seen       Battery
+  iPhone 16 Pro    2 minutes ago   87%
+  MacBook Pro 14   just now        charging
+  AirPods Pro 2    1 hour ago      64%</span>
+        </div>
+      </div>
+
+    </div><!-- .examples -->
+  </div>
+</section>
+
+<!-- ── agents ────────────────────────────────────────────────────── -->
+<section id="agents">
+  <div class="container">
+    <p class="section-label">AI workflows</p>
+    <div class="agents-header">
+      <div>
+        <h2>Paste into any AI agent</h2>
+        <p class="agents-sub">Copy a prompt, paste it into <strong>Claude</strong>, <strong>Cursor</strong>, <strong>Codex</strong>, or any agent with terminal access — it runs the commands and handles the rest.</p>
+      </div>
+      <div class="slider-nav">
+        <button class="slider-nav-btn" id="agentPrev" aria-label="Previous">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="slider-nav-btn" id="agentNext" aria-label="Next">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="agent-slider-outer">
+      <div class="agent-slider" id="agentSlider">
+
+        <!-- 1. Family photo book -->
+        <div class="agent-card" style="--card-accent:#3b82f6">
+          <div class="agent-card-body">
+            <div class="agent-card-tag">Photos</div>
+            <div class="agent-card-title">Your best shots. Print-ready.</div>
+            <div class="agent-card-desc">Curate a year into a photo book — sorted by month, RAW keepers first.</div>
+          </div>
+          <div class="agent-card-media ph-fan">
+            <div class="ph-fan-card"></div>
+            <div class="ph-fan-card"></div>
+            <div class="ph-fan-card"></div>
+            <button class="agent-card-copy" onclick="copyAgent(this)" aria-label="Copy prompt"
+              data-copy="I want to print a family photo book. Run `icloud-pp-cli photos storage --agent` to see which years have the most photos. Then find the highest-quality shots from that year — large file size means RAW or ProRAW, which are the keepers. Write a shell script that copies the top 50 to ~/Desktop/Family-Book organized by month.">Copy Prompt</button>
+          </div>
+        </div>
+
+        <!-- 2. Dog photos -->
+        <div class="agent-card" style="--card-accent:#34d399">
+          <div class="agent-card-body">
+            <div class="agent-card-tag">Photos</div>
+            <div class="agent-card-title">50 best dog shots. One folder.</div>
+            <div class="agent-card-desc">Surface dedicated shoot sessions from date clusters and stage them automatically.</div>
+          </div>
+          <div class="agent-card-media ph-grid-2x2">
+            <div class="ph-photo"></div>
+            <div class="ph-photo"></div>
+            <div class="ph-photo"></div>
+            <div class="ph-photo"></div>
+            <button class="agent-card-copy" onclick="copyAgent(this)" aria-label="Copy prompt"
+              data-copy="I want to find all good photos of my dog. Run `icloud-pp-cli photos storage --agent` to understand my library. Then export photo metadata from the past 3 years as JSON and look for date clusters suggesting a dedicated photo session (many shots in one afternoon). List the top 5 candidate date ranges and copy those photos to ~/Desktop/Dog-Photos.">Copy Prompt</button>
+          </div>
+        </div>
+
+        <!-- 3. Reduce iCloud plan -->
+        <div class="agent-card" style="--card-accent:#f59e0b">
+          <div class="agent-card-body">
+            <div class="agent-card-tag">Storage</div>
+            <div class="agent-card-title">Drop a plan tier. Save $36/yr.</div>
+            <div class="agent-card-desc">Calculate exactly what to delete to downgrade, with ready-to-run commands.</div>
+          </div>
+          <div class="agent-card-media ph-stats">
+            <div class="ph-stats-num">–2 TB</div>
+            <div class="ph-stats-label">freed this session</div>
+            <button class="agent-card-copy" onclick="copyAgent(this)" aria-label="Copy prompt"
+              data-copy="I want to downgrade my iCloud storage plan. Run `icloud-pp-cli photos top --limit 0 --type video --agent` to list every video. Calculate: (1) total library size, (2) space freed by deleting videos over 1 GB, (3) whether that drops me below the next plan tier. Give me the exact `icloud-pp-cli photos delete --confirm` command for the top 20 space hogs.">Copy Prompt</button>
+          </div>
+        </div>
+
+        <!-- 4. Vlog footage -->
+        <div class="agent-card" style="--card-accent:#a855f7">
+          <div class="agent-card-body">
+            <div class="agent-card-tag">Videos</div>
+            <div class="agent-card-title">All your clips. Organized by day.</div>
+            <div class="agent-card-desc">Find footage from any recording window and stage it for editing.</div>
+          </div>
+          <div class="agent-card-media ph-films">
+            <div class="ph-films-strip">
+              <div class="ph-films-frame"></div>
+              <div class="ph-films-frame"></div>
+              <div class="ph-films-frame"></div>
+              <div class="ph-films-frame"></div>
+            </div>
+            <button class="agent-card-copy" onclick="copyAgent(this)" aria-label="Copy prompt"
+              data-copy="I recorded vlog footage about 2 weeks ago. Run `icloud-pp-cli photos videos --year 2025 --month 5 --agent` to find all videos from that window with filenames, sizes, and UUIDs. Then write a shell script that copies the originals from my Photos library to ~/Desktop/Vlog-May-2025 organized by recording day.">Copy Prompt</button>
+          </div>
+        </div>
+
+        <!-- 5. Screenshot purge -->
+        <div class="agent-card" style="--card-accent:#ef4444">
+          <div class="agent-card-body">
+            <div class="agent-card-tag">Storage</div>
+            <div class="agent-card-title">3,847 screenshots. Gone.</div>
+            <div class="agent-card-desc">Find every screenshot, show total wasted space, delete in one shot.</div>
+          </div>
+          <div class="agent-card-media ph-grid-3x2">
+            <div class="ph-grid-cell"></div>
+            <div class="ph-grid-cell"></div>
+            <div class="ph-grid-cell"></div>
+            <div class="ph-grid-cell"></div>
+            <div class="ph-grid-cell"></div>
+            <div class="ph-grid-cell"></div>
+            <button class="agent-card-copy" onclick="copyAgent(this)" aria-label="Copy prompt"
+              data-copy="Clean up my iCloud screenshots. Run `icloud-pp-cli photos top --limit 0 --type photo --agent` and filter for filenames starting with &quot;Screenshot&quot;. Tell me the total space they waste, then generate and run the `icloud-pp-cli photos delete --confirm` command to remove them all at once.">Copy Prompt</button>
+          </div>
+        </div>
+
+        <!-- 6. Best of the year -->
+        <div class="agent-card" style="--card-accent:#6366f1">
+          <div class="agent-card-body">
+            <div class="agent-card-tag">Photos</div>
+            <div class="agent-card-title">Your 2024. The 75 best.</div>
+            <div class="agent-card-desc">Pull RAW and ProRAW keepers from a full year, grouped by quarter.</div>
+          </div>
+          <div class="agent-card-media ph-stamp">
+            <div class="ph-stamp-img"></div>
+            <button class="agent-card-copy" onclick="copyAgent(this)" aria-label="Copy prompt"
+              data-copy="Build me a best-of-2024 album. Run `icloud-pp-cli photos top --limit 0 --json` and filter for photos from 2024 — large file size means RAW or ProRAW, which are the keepers. Write a script that copies the top 75 to ~/Desktop/Best-of-2024 grouped by quarter (Q1, Q2, Q3, Q4).">Copy Prompt</button>
+          </div>
+        </div>
+
+        <!-- 7. Suggest your own -->
+        <div class="agent-card agent-suggest-card">
+          <div class="agent-card-body">
+            <span class="agent-card-icon" style="font-size:1.9rem;line-height:1;margin-bottom:14px;display:block">💡</span>
+            <div class="agent-card-tag" style="color:var(--text-muted)">Community</div>
+            <div class="agent-card-title">Have a use case to share?</div>
+            <div class="agent-card-desc">Write your own prompt and submit it as a pull request — it might end up right here in the slider.</div>
+          </div>
+          <div class="agent-suggest-actions">
+            <button class="agent-suggest-copy" onclick="copyAgentMeta(this)">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy prompt to Claude
+            </button>
+            <a class="agent-suggest-gh" href="https://github.com/matysanchez/icloudcli/issues/new" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+              Open GitHub issue
+            </a>
+          </div>
+        </div>
+
+      </div><!-- .agent-slider -->
+    </div><!-- .agent-slider-outer -->
+
+  </div>
+</section>
+
+<!-- ── star CTA ──────────────────────────────────────────────────── -->
+<section id="star-cta">
+  <div class="container star-cta-inner">
+    <h2 class="star-cta-heading">Leave a star on GitHub.</h2>
+    <p class="star-cta-sub">Open source lives on community support. A star takes one second and helps other developers find this tool.</p>
+    <div class="star-cta-widget">
+      <a class="github-button" id="gh-btn-cta" href="https://github.com/matysanchez/icloudcli" data-color-scheme="no-preference: light; light: light; dark: light;" data-size="large" data-show-count="true" aria-label="Star matysanchez/icloudcli on GitHub">Star</a>
+    </div>
+    <div class="star-cta-follow">
+      <a class="github-button" href="https://github.com/matysanchez" data-color-scheme="no-preference: light; light: light; dark: light;" data-size="large" data-show-count="true" aria-label="Follow @matysanchez on GitHub">Follow @matysanchez</a>
+    </div>
+    <span class="star-cta-note">Apache-2.0 · free forever · macOS only</span>
+  </div>
+</section>
+
+<!-- ── commands ──────────────────────────────────────────────────── -->
+<section id="commands">
+  <div class="container">
+    <p class="section-label">Reference</p>
+    <h2>icloudcli command reference</h2>
+    <p class="section-intro">All commands accept <code style="font-family:var(--mono);font-size:.9em">--json</code>, <code style="font-family:var(--mono);font-size:.9em">--compact</code>, <code style="font-family:var(--mono);font-size:.9em">--no-color</code>, and <code style="font-family:var(--mono);font-size:.9em">--agent</code> (sets all three). Use <code style="font-family:var(--mono);font-size:.9em">--library</code> to point at a non-default Photos library path.</p>
+
+    <div class="cmd-groups">
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">photos</div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>photos top</code>
+            <span class="cmd-row-desc">Top N heaviest files across all media types. Flags: <code style="font-family:var(--mono);font-size:.82em">--limit</code>, <code style="font-family:var(--mono);font-size:.82em">--type all|photo|video</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>photos videos</code>
+            <span class="cmd-row-desc">Largest videos sorted by file size. Flags: <code style="font-family:var(--mono);font-size:.82em">--limit</code>, <code style="font-family:var(--mono);font-size:.82em">--year</code>, <code style="font-family:var(--mono);font-size:.82em">--month</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>photos storage</code>
+            <span class="cmd-row-desc">Storage breakdown by media type (photo/video) and by year</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>photos stats</code>
+            <span class="cmd-row-desc">Total item count and total library size</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>photos delete</code>
+            <span class="cmd-row-desc">Move items to Recently Deleted. Dry run by default; add <code style="font-family:var(--mono);font-size:.82em">--confirm</code> to act. Requires Photos.app.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>photos search</code>
+            <span class="cmd-row-desc">Search by location, date range, or person</span>
+            <span class="badge badge-coming cmd-row-badge">Coming</span>
+          </div>
+          <div class="cmd-row">
+            <code>photos ask</code>
+            <span class="cmd-row-desc">Natural language query over your library</span>
+            <span class="badge badge-coming cmd-row-badge">Coming</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">messages &nbsp;<span style="font-weight:400;opacity:.5">coming</span></div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>messages list-chats</code>
+            <span class="cmd-row-desc">List all conversations — name, handle, last message date, and message count</span>
+            <span class="badge badge-coming cmd-row-badge">Coming</span>
+          </div>
+          <div class="cmd-row">
+            <code>messages search</code>
+            <span class="cmd-row-desc">Search messages by contact, keyword, or date range. Flags: <code style="font-family:var(--mono);font-size:.82em">--from</code>, <code style="font-family:var(--mono);font-size:.82em">--text</code>, <code style="font-family:var(--mono);font-size:.82em">--after</code>, <code style="font-family:var(--mono);font-size:.82em">--before</code></span>
+            <span class="badge badge-coming cmd-row-badge">Coming</span>
+          </div>
+          <div class="cmd-row">
+            <code>messages export</code>
+            <span class="cmd-row-desc">Export a full conversation thread to JSON or plain text</span>
+            <span class="badge badge-coming cmd-row-badge">Coming</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">contacts &nbsp;<span style="font-weight:400;opacity:.5">coming</span></div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>contacts list</code>
+            <span class="cmd-row-desc">List all contacts with filter and sort options. Reads AddressBook SQLite directly.</span>
+            <span class="badge badge-coming cmd-row-badge">Coming</span>
+          </div>
+          <div class="cmd-row">
+            <code>contacts search</code>
+            <span class="cmd-row-desc">Search contacts by name, email, phone, or note</span>
+            <span class="badge badge-coming cmd-row-badge">Coming</span>
+          </div>
+          <div class="cmd-row">
+            <code>contacts export</code>
+            <span class="cmd-row-desc">Export all contacts to JSON — no vCard, no Contacts.app</span>
+            <span class="badge badge-coming cmd-row-badge">Coming</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">findmy &nbsp;<span style="font-weight:400;opacity:.5">coming</span></div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>findmy devices</code>
+            <span class="cmd-row-desc">List all Apple ID devices — name, last-seen time, and battery level from local Find My cache</span>
+            <span class="badge badge-coming cmd-row-badge">Coming</span>
+          </div>
+          <div class="cmd-row">
+            <code>findmy items</code>
+            <span class="cmd-row-desc">List AirTags and third-party Find My accessories with last-seen location</span>
+            <span class="badge badge-coming cmd-row-badge">Coming</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">root</div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>doctor</code>
+            <span class="cmd-row-desc">Pre-flight check — verifies macOS, Photos.app, library path, schema, and asset count. Run this first.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- .cmd-groups -->
+  </div>
+</section>
+
+<!-- ── install ───────────────────────────────────────────────────── -->
+<section id="install">
+  <div class="container">
+    <p class="section-label">Get started</p>
+    <h2>Install icloudcli on macOS</h2>
+    <p class="section-intro">Requires macOS 13+. Run <code style="font-family:var(--mono);font-size:.9em">icloud-pp-cli doctor</code> after installing to verify your setup.</p>
+
+    <div class="install-options">
+
+      <div class="install-option">
+        <div class="install-option-label">Shell script (recommended)</div>
+        <div class="code-block" style="position:relative">
+          <button class="copy-block-btn" onclick="copyBlock(this)" data-copy="curl -fsSL https://icloudcli.com/install.sh | sh">Copy</button>
+          <span class="prompt">$ </span>curl -fsSL https://icloudcli.com/install.sh | sh
+        </div>
+      </div>
+
+      <div class="install-option">
+        <div class="install-option-label">Go install</div>
+        <div class="code-block" style="position:relative">
+          <button class="copy-block-btn" onclick="copyBlock(this)" data-copy="go install github.com/matysanchez/icloudcli/cmd/icloud-pp-cli@latest">Copy</button>
+          <span class="prompt">$ </span>go install github.com/matysanchez/icloudcli/cmd/icloud-pp-cli@latest
+        </div>
+      </div>
+
+      <div class="install-option">
+        <div class="install-option-label">Via Printing Press CLI</div>
+        <div class="code-block" style="position:relative">
+          <button class="copy-block-btn" onclick="copyBlock(this)" data-copy="npx -y @mvanhorn/printing-press install icloud">Copy</button>
+          <span class="prompt">$ </span>npx -y @mvanhorn/printing-press install icloud
+        </div>
+      </div>
+
+      <div class="install-option">
+        <div class="install-option-label">Build from source</div>
+        <div class="code-block" style="position:relative">
+          <button class="copy-block-btn" onclick="copyBlock(this)" data-copy="git clone https://github.com/matysanchez/icloudcli
+cd icloudcli
+make install">Copy</button>
+          <span class="prompt">$ </span>git clone https://github.com/matysanchez/icloudcli<br>
+          <span class="prompt">$ </span>cd icloudcli &amp;&amp; make install
+        </div>
+      </div>
+
+      <div class="install-option">
+        <div class="install-option-label">Verify — run this first</div>
+        <div class="code-block">
+          <span class="prompt">$ </span>icloud-pp-cli doctor<br>
+          <br>
+          <span style="color:var(--term-text);font-weight:600">System</span><br>
+          <span style="color:var(--term-output)">  ✓ macOS required<br>
+      macOS 15.4.1<br>
+  ✓ Photos.app installed<br>
+<br></span>
+          <span style="color:var(--term-text);font-weight:600">Library</span><br>
+          <span style="color:var(--term-output)">  ✓ Library found<br>
+      ~/Pictures/Photos Library.photoslibrary/...<br>
+  ✓ Library readable (read-only)<br>
+  ✓ Schema valid (ZASSET + ZADDITIONALASSETATTRIBUTES)<br>
+<br></span>
+          <span style="color:var(--term-text);font-weight:600">Assets</span><br>
+          <span style="color:var(--term-output)">  ✓ Can query assets<br>
+      129,466 items · 794.31 GB (original sizes)<br>
+      video:       16,829 items<br>
+      photo:       112,637 items<br>
+<br></span>
+          <span style="color:#3fb950">All checks passed. Ready to use.</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── footer ───────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <div class="footer-left">
+      <span style="font-family:var(--pixel)">icloudcli</span>
+      <span>Apache-2.0</span>
+      <span>macOS only</span>
+    </div>
+    <div class="footer-right">
+      <a href="https://github.com/matysanchez/icloudcli" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/matysanchez/icloudcli/issues" target="_blank" rel="noopener">Issues</a>
+      <a href="https://github.com/mvanhorn/printing-press-library" target="_blank" rel="noopener">Printing Press</a>
+      <a class="github-button" href="https://github.com/matysanchez" data-color-scheme="no-preference: dark; light: dark; dark: light;" data-show-count="true" aria-label="Follow @matysanchez on GitHub">Follow @matysanchez</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  /* ── theme toggle (light → dark → system) ─────────────────────── */
+  const html = document.documentElement;
+  const btn  = document.getElementById('themeToggle');
+  const THEMES = ['light', 'dark', 'system'];
+
+  function applyTheme(t) {
+    if (t === 'system') {
+      html.removeAttribute('data-theme');
+    } else {
+      html.setAttribute('data-theme', t);
+    }
+    btn.setAttribute('data-theme', t);
+    btn.setAttribute('aria-label', `Theme: ${t} — click to cycle`);
+    localStorage.setItem('theme', t);
+
+    // Keep GitHub button inverted vs page theme (dark btn on light, light btn on dark)
+    const effectiveDark = t === 'dark' ||
+      (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const scheme = effectiveDark
+      ? 'no-preference: light; light: light; dark: light;'
+      : 'no-preference: dark; light: dark; dark: dark;';
+    document.querySelectorAll('.github-button').forEach(ghBtn => {
+      if (ghBtn.closest('#star-cta')) return; // always dark bg, keep light buttons
+      ghBtn.dataset.colorScheme = scheme;
+      if (window.GitHubButtons) {
+        try { window.GitHubButtons.render(ghBtn); } catch (_) {}
+      }
+    });
+  }
+
+  applyTheme(localStorage.getItem('theme') || 'system');
+
+  btn.addEventListener('click', () => {
+    const cur = localStorage.getItem('theme') || 'system';
+    applyTheme(THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length]);
+  });
+
+
+  /* ── copy helpers ──────────────────────────────────────────────── */
+  function copyInstall(el) {
+    const text = document.getElementById('installCmd').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      el.textContent = 'Copied!';
+      el.classList.add('copied');
+      setTimeout(() => { el.textContent = 'Copy'; el.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function copyBlock(el) {
+    const text = el.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      el.textContent = 'Copied!';
+      el.classList.add('copied');
+      setTimeout(() => { el.textContent = 'Copy'; el.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function copyAgentMeta(el) {
+    const text = `Help me contribute a new agent prompt card to the icloudcli landing page (github.com/matysanchez/icloudcli).
+
+I want to add a use case for [describe your idea here].
+
+The card format to match:
+- Title: max 6 words, action-oriented
+- Tag: one of Photos, Videos, Storage, Messages, Contacts, FindMy
+- Description: 1 sentence — what it helps the user accomplish
+- Prompt: 3–4 sentences referencing actual icloud-pp-cli commands
+
+Once we write the prompt together, help me:
+1. Fork https://github.com/matysanchez/icloudcli
+2. Add the new card HTML in web/index.html inside #agentSlider (follow the existing .agent-card structure)
+3. Add a matching dock pill in #agentDock
+4. Open a pull request with a short description
+
+Let's start — what's my use case?`;
+    const orig = el.innerHTML;
+    navigator.clipboard.writeText(text).then(() => {
+      el.textContent = 'Copied!';
+      el.classList.add('copied');
+      setTimeout(() => { el.innerHTML = orig; el.classList.remove('copied'); }, 2200);
+    });
+  }
+
+  function copyAgent(el) {
+    const text = el.dataset.copy;
+    navigator.clipboard.writeText(text).then(() => {
+      el.textContent = '✓ Copied';
+      el.classList.add('copied');
+      setTimeout(() => { el.textContent = 'Copy Prompt'; el.classList.remove('copied'); }, 5000);
+    });
+  }
+
+  /* ── agent slider ────────────────────────────────────────────── */
+  (function () {
+    const slider = document.getElementById('agentSlider');
+    const prev   = document.getElementById('agentPrev');
+    const next   = document.getElementById('agentNext');
+    if (!slider) return;
+
+    const cards = () => [...slider.querySelectorAll('.agent-card')];
+
+    function cardStep() {
+      const c = cards()[0];
+      return c ? c.offsetWidth + 12 : 308;
+    }
+
+    function syncNav() {
+      if (prev) prev.disabled = slider.scrollLeft < 4;
+      if (next) next.disabled = slider.scrollLeft >= slider.scrollWidth - slider.clientWidth - 4;
+    }
+
+    slider.addEventListener('scroll', syncNav, { passive: true });
+
+    if (prev) prev.addEventListener('click', () => {
+      slider.scrollBy({ left: -cardStep(), behavior: 'smooth' });
+    });
+    if (next) next.addEventListener('click', () => {
+      slider.scrollBy({ left: cardStep(), behavior: 'smooth' });
+    });
+
+    /* drag-to-scroll on desktop */
+    let down = false, startX, startScroll;
+    slider.addEventListener('mousedown', e => {
+      down = true; startX = e.pageX; startScroll = slider.scrollLeft;
+      slider.classList.add('is-dragging');
+    });
+    window.addEventListener('mouseup', () => { down = false; slider.classList.remove('is-dragging'); });
+    slider.addEventListener('mousemove', e => {
+      if (!down) return;
+      e.preventDefault();
+      slider.scrollLeft = startScroll - (e.pageX - startX);
+    });
+
+    syncNav();
+  })();
+
+  /* ── nav section highlight ───────────────────────────────────── */
+  (function () {
+    const sections = [...document.querySelectorAll('section[id]')];
+    const links    = [...document.querySelectorAll('.nav-link[href^="#"]')];
+    if (!sections.length || !links.length) return;
+
+    function onScroll() {
+      const y = window.scrollY + 80;
+      let current = sections[0].id;
+      sections.forEach(s => { if (s.offsetTop <= y) current = s.id; });
+      links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + current));
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+
+  /* ── terminal animation ──────────────────────────────────────── */
+  (function () {
+    const CHAR_MS   = 28;   // ms per character while typing
+    const OUT_MS    = 45;   // ms between output lines appearing
+    const BLANK_MS  = 20;   // ms for blank spacer lines
+    const POST_CMD  = 120;  // pause after command finishes before output
+
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    async function animateTerm(term) {
+      if (term.dataset.animated) return;
+      term.dataset.animated = '1';
+
+      for (const line of term.querySelectorAll('.tl')) {
+        const cmdSpan = line.querySelector('.cmd');
+
+        if (cmdSpan) {
+          line.style.opacity = '1';
+          const text = cmdSpan.textContent;
+          cmdSpan.textContent = '';
+
+          // blinking cursor while typing
+          const cursor = document.createElement('span');
+          cursor.className = 'tl-cursor';
+          cmdSpan.after(cursor);
+
+          for (const ch of text) {
+            cmdSpan.textContent += ch;
+            // slight randomness makes it feel natural
+            await sleep(CHAR_MS + (Math.random() * 14 | 0) - 7);
+          }
+
+          await sleep(POST_CMD);
+          cursor.remove();
+
+        } else {
+          line.style.opacity = '1';
+          await sleep(line.classList.contains('tl-blank') ? BLANK_MS : OUT_MS);
+        }
+      }
+    }
+
+    // trigger each terminal as it scrolls into view (one-shot)
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) animateTerm(e.target); });
+    }, { threshold: 0.25 });
+
+    document.querySelectorAll('.term[data-animate]').forEach(t => obs.observe(t));
+  })();
+</script>
+<script async defer src="https://buttons.github.io/buttons.js"></script>
+</body>
+</html>

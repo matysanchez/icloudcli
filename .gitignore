@@ -1,0 +1,11 @@
+/icloud-pp-cli
+*.sqlite
+.DS_Store
+
+# web tooling — source files, not deployable assets
+web/og.svg
+web/og.html
+web/generate-og.js
+web/node_modules/
+web/package.json
+web/package-lock.json

@@ -51,6 +51,7 @@ Pipe any command for automatic JSON output.`,
 	root.PersistentFlags().StringVar(&f.libraryPath, "library", "", "Path to Photos.sqlite (default: ~/Pictures/Photos Library.photoslibrary/database/Photos.sqlite)")
 
 	root.AddCommand(newPhotosCmd(f))
+	root.AddCommand(newContactsCmd(f))
 	root.AddCommand(newDoctorCmd(f))
 
 	return root.Execute()

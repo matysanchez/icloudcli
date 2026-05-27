@@ -4,6 +4,7 @@ package cli
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,6 +14,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// PATCH(doctor-sectioned-output): emits System/Library/Assets/Messages sections for structured pre-flight.
+// PATCH(messages-fda-doctor-check): the Messages section classifies EPERM (and modernc.org/sqlite's
+// SQLITE_CANTOPEN surrogate) on chat.db open as a Full Disk Access denial with copy-paste remediation.
 func newDoctorCmd(f *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "doctor",
@@ -36,6 +40,15 @@ database schema, and asset count.`,
 					if hint != "" {
 						fmt.Fprintf(out, "      %s\n", hint)
 					}
+				}
+			}
+
+			// warn prints a yellow ⚠ without affecting allOK — used for optional
+			// features that are unavailable on this library but don't block core commands.
+			warn := func(label, hint string) {
+				fmt.Fprintf(out, "  %s %s\n", yellow(f, out, "⚠"), label)
+				if hint != "" {
+					fmt.Fprintf(out, "      %s\n", hint)
 				}
 			}
 
@@ -89,9 +102,18 @@ database schema, and asset count.`,
 			}
 			defer db.Close()
 
-			schemaOK := checkSchema(db)
-			check("Schema valid (ZASSET + ZADDITIONALASSETATTRIBUTES)",
+			schemaOK := checkCoreSchema(db)
+			check("Core schema valid (ZASSET + ZADDITIONALASSETATTRIBUTES)",
 				"Unexpected schema — may be an unsupported Photos version.", schemaOK)
+
+			// Optional: ML sensitivity column — only needed by photos download --sensitive.
+			// Absent on macOS 12 or earlier; does not block core commands.
+			if checkSensitiveColumn(db) {
+				fmt.Fprintf(out, "  %s %s\n", green(f, out, "✓"), "ML analysis column present (photos download --sensitive available)")
+			} else {
+				warn("ML analysis column absent — photos download --sensitive unavailable",
+					"Column ZSCREENTIMEDEVICEIMAGESENSITIVITY not found; requires macOS 13 or later.")
+			}
 
 			// ── Assets ────────────────────────────────────────────────
 			fmt.Fprintln(out)
@@ -112,6 +134,48 @@ database schema, and asset count.`,
 				}
 			}
 
+			// ── Messages ──────────────────────────────────────────────
+			fmt.Fprintln(out)
+			fmt.Fprintln(out, bold(f, out, "Messages"))
+
+			msgPath := f.messagesDBPath
+			if msgPath == "" {
+				msgPath = defaultMessagesDBPath()
+			}
+
+			_, msgStatErr := os.Stat(msgPath)
+			if msgStatErr != nil {
+				warn("chat.db not present — messages commands unavailable",
+					fmt.Sprintf("Open Messages.app once to initialize the database, or use --messages-db.\n      Expected at: %s", msgPath))
+			} else {
+				fmt.Fprintf(out, "      %s\n", msgPath)
+				msgDB, msgOpenErr := openMessagesDB(msgPath)
+				switch {
+				case msgOpenErr == nil:
+					fmt.Fprintf(out, "  %s %s\n", green(f, out, "✓"), "chat.db readable (Full Disk Access granted)")
+					msgSchemaOK := checkMessagesSchema(msgDB)
+					if msgSchemaOK {
+						fmt.Fprintf(out, "  %s %s\n", green(f, out, "✓"), "Messages schema valid (message + chat + handle)")
+						msgTotals, totalsErr := statsTotals(msgDB, false)
+						if totalsErr == nil {
+							fmt.Fprintf(out, "      %s messages · %s chats · %s handles\n",
+								formatInt(msgTotals.TotalMessages),
+								formatInt(msgTotals.TotalChats),
+								formatInt(msgTotals.TotalHandles))
+						}
+					} else {
+						warn("Messages schema unexpected", "")
+					}
+					msgDB.Close()
+				case errors.Is(msgOpenErr, errFDADenied):
+					warn("Full Disk Access not granted — messages commands unavailable",
+						"Open System Settings > Privacy & Security > Full Disk Access,\n      add your terminal app, quit and reopen the terminal, then rerun doctor.")
+				default:
+					warn("chat.db cannot be opened",
+						msgOpenErr.Error())
+				}
+			}
+
 			// ── Result ────────────────────────────────────────────────
 			fmt.Fprintln(out)
 			if allOK {
@@ -125,6 +189,32 @@ database schema, and asset count.`,
 	}
 
 	return cmd
+}
+
+// checkMessagesSchema verifies the tables an iMessage query touches.
+//
+// PATCH(messages-doctor-junction-tables): every messages query joins
+// chat_message_join, and `messages export` additionally touches
+// message_attachment_join. A stripped or very old chat.db can be missing
+// these without missing the primary tables, which used to make doctor
+// report "schema valid" but the first real query fail.
+func checkMessagesSchema(db *sql.DB) bool {
+	tables := []string{
+		"message",
+		"chat",
+		"handle",
+		"chat_message_join",
+		"message_attachment_join",
+	}
+	for _, table := range tables {
+		var name string
+		if err := db.QueryRow(
+			"SELECT name FROM sqlite_master WHERE type='table' AND name=?", table,
+		).Scan(&name); err != nil || name != table {
+			return false
+		}
+	}
+	return true
 }
 
 func photosAppPath() string {
@@ -147,7 +237,8 @@ func macOSVersion() string {
 	return strings.TrimSpace(string(b))
 }
 
-func checkSchema(db *sql.DB) bool {
+// checkCoreSchema verifies the two tables required by every command.
+func checkCoreSchema(db *sql.DB) bool {
 	for _, table := range []string{"ZASSET", "ZADDITIONALASSETATTRIBUTES"} {
 		var name string
 		if err := db.QueryRow(
@@ -159,11 +250,33 @@ func checkSchema(db *sql.DB) bool {
 	return true
 }
 
+// checkSensitiveColumn verifies that ZMEDIAANALYSISASSETATTRIBUTES exists and
+// contains the ZSCREENTIMEDEVICEIMAGESENSITIVITY column used by --sensitive.
+// This is optional: absent on macOS 12 or earlier; only blocks photos download --sensitive.
+func checkSensitiveColumn(db *sql.DB) bool {
+	var name string
+	if err := db.QueryRow(
+		"SELECT name FROM sqlite_master WHERE type='table' AND name='ZMEDIAANALYSISASSETATTRIBUTES'",
+	).Scan(&name); err != nil {
+		return false
+	}
+	var colCount int
+	if err := db.QueryRow(
+		"SELECT COUNT(*) FROM pragma_table_info('ZMEDIAANALYSISASSETATTRIBUTES') WHERE name='ZSCREENTIMEDEVICEIMAGESENSITIVITY'",
+	).Scan(&colCount); err != nil || colCount == 0 {
+		return false
+	}
+	return true
+}
+
 func formatFloat(f float64) string {
 	return fmt.Sprintf("%.2f", f)
 }
 
 func formatInt(n int64) string {
+	if n < 0 {
+		return "-" + formatInt(-n)
+	}
 	s := fmt.Sprintf("%d", n)
 	out := []byte{}
 	for i, c := range s {

@@ -180,16 +180,6 @@ func str(v interface{}) string {
 
 // extractUUID strips the ":ABPerson" (or similar) suffix from Apple's contact ID,
 // returning the bare UUID that serves as a shorter stable identifier.
-// escapeLike escapes SQLite LIKE wildcards (% and _) and the escape
-// character itself so untrusted input cannot broaden a LIKE match.
-// Must be paired with an explicit ESCAPE '\' clause.
-func escapeLike(s string) string {
-	s = strings.ReplaceAll(s, `\`, `\\`)
-	s = strings.ReplaceAll(s, "%", `\%`)
-	s = strings.ReplaceAll(s, "_", `\_`)
-	return s
-}
-
 func extractUUID(appleID string) string {
 	if i := strings.LastIndex(appleID, ":"); i >= 0 {
 		return appleID[:i]

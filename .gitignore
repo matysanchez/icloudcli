@@ -1,4 +1,7 @@
 /icloud-pp-cli
+
+# promo video — local only, not part of the public repo
+/videos/
 *.sqlite
 .DS_Store
 

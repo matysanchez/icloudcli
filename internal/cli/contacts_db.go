@@ -180,6 +180,16 @@ func str(v interface{}) string {
 
 // extractUUID strips the ":ABPerson" (or similar) suffix from Apple's contact ID,
 // returning the bare UUID that serves as a shorter stable identifier.
+// escapeLike escapes SQLite LIKE wildcards (% and _) and the escape
+// character itself so untrusted input cannot broaden a LIKE match.
+// Must be paired with an explicit ESCAPE '\' clause.
+func escapeLike(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, "%", `\%`)
+	s = strings.ReplaceAll(s, "_", `\_`)
+	return s
+}
+
 func extractUUID(appleID string) string {
 	if i := strings.LastIndex(appleID, ":"); i >= 0 {
 		return appleID[:i]
@@ -466,8 +476,9 @@ func (s *contactStore) GetByAny(input string) (*Contact, error) {
 	if err == nil {
 		return s.Get(id)
 	}
-	// 3. UUID prefix match — must be unique
-	rows, err := s.db.Query("SELECT id FROM contacts WHERE uuid LIKE ? || '%' LIMIT 3", input)
+	// 3. UUID prefix match — must be unique. Escape SQLite LIKE wildcards
+	// (% and _) in the input so callers can't broaden the match.
+	rows, err := s.db.Query(`SELECT id FROM contacts WHERE uuid LIKE ? || '%' ESCAPE '\' LIMIT 3`, escapeLike(input))
 	if err != nil {
 		return nil, err
 	}
@@ -765,6 +776,22 @@ func (s *contactStore) UpsertOne(c *Contact) error {
 			return fmt.Errorf("upsert: insert email: %w", err)
 		}
 		emailTokens = append(emailTokens, em.Value)
+	}
+	for _, addr := range c.Addresses {
+		if _, err := tx.Exec(
+			`INSERT INTO contact_addresses (contact_id, label, street, city, state, zip, country) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			c.ID, addr.Label, addr.Street, addr.City, addr.State, addr.Zip, addr.Country,
+		); err != nil {
+			return fmt.Errorf("upsert: insert address: %w", err)
+		}
+	}
+	for _, u := range c.URLs {
+		if _, err := tx.Exec(
+			`INSERT INTO contact_urls (contact_id, label, value) VALUES (?, ?, ?)`,
+			c.ID, u.Label, u.Value,
+		); err != nil {
+			return fmt.Errorf("upsert: insert url: %w", err)
+		}
 	}
 
 	body := strings.Join(filterEmpty(c.FirstName, c.MiddleName, c.LastName, c.Organization, c.JobTitle, c.Note,

@@ -205,6 +205,39 @@ blocks the rest.`,
 				}
 			}
 
+			// ── Call History + Screen Time (Full Disk Access) ─────────
+			fmt.Fprintln(out)
+			fmt.Fprintln(out, bold(f, out, "Call History · Screen Time"))
+			fdaProbe := func(label, path string, open func(string) (*sql.DB, error)) {
+				if _, err := os.Stat(path); err != nil {
+					warn(label+" not present", fmt.Sprintf("Expected at: %s", path))
+					return
+				}
+				db, oErr := open(path)
+				switch {
+				case oErr == nil:
+					fmt.Fprintf(out, "  %s %s readable (Full Disk Access granted)\n", green(f, out, "✓"), label)
+					db.Close()
+				case errors.Is(oErr, errFDADenied):
+					warn("Full Disk Access not granted — "+label+" unavailable",
+						"Add your terminal under System Settings > Privacy & Security > Full Disk Access, then reopen it.")
+				default:
+					warn(label+" cannot be opened", oErr.Error())
+				}
+			}
+			fdaProbe("Call History", defaultCallHistoryPath(), openCallHistory)
+			fdaProbe("Screen Time", defaultKnowledgeDBPath(), openKnowledgeDB)
+
+			// ── iCloud Drive (no special permission) ──────────────────
+			fmt.Fprintln(out)
+			fmt.Fprintln(out, bold(f, out, "iCloud Drive"))
+			if _, err := os.Stat(mobileDocumentsPath()); err != nil {
+				warn("iCloud Drive not found — is iCloud Drive enabled?",
+					fmt.Sprintf("Expected at: %s", mobileDocumentsPath()))
+			} else {
+				fmt.Fprintf(out, "  %s %s\n", green(f, out, "✓"), "iCloud Drive readable (no extra permission needed)")
+			}
+
 			// ── Automation note ───────────────────────────────────────
 			fmt.Fprintln(out)
 			fmt.Fprintln(out, bold(f, out, "Automation (Notes · Reminders · Calendar)"))

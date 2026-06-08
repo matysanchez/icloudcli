@@ -65,6 +65,7 @@ Pipe any command for automatic JSON output.`,
 	root.AddCommand(newSafariCmd(f))
 	root.AddCommand(newCallsCmd(f))
 	root.AddCommand(newDriveCmd(f))
+	root.AddCommand(newScreenTimeCmd(f))
 	root.AddCommand(newDoctorCmd(f))
 
 	return root.Execute()

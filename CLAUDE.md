@@ -48,14 +48,30 @@ The leads Worker is deployed independently via `wrangler` from `/Users/matysanch
 
 ## CLI commands shipped
 
-| Command | Status | Notes |
-|---|---|---|
-| `doctor` | ✅ shipped | Pre-flight checks |
-| `photos list` | ✅ shipped | List assets |
-| `photos download` | ✅ shipped | Export assets via osascript; flags: `--output`, `--sensitive`, `--type`, `--limit`, `--confirm` |
-| `photos search` | 🚧 coming | Not yet implemented |
+| Group | Status | Permission | Notes |
+|---|---|---|---|
+| `doctor` | ✅ | — | Pre-flight checks for every data source + permissions |
+| `photos` | ✅ | none | top, videos, storage, stats, delete, download. `search`/`ask` still 🚧 |
+| `messages` | ✅ | Full Disk Access | list-chats, search, stats, audit, export. Reads `chat.db` read-only; attributedBody decoder |
+| `contacts` | ✅ | none | sync (JXA→SQLite), list, get, search (FTS5), create/update/delete, merge, duplicates, analytics |
+| `notes` | ✅ | Automation | sync (JXA→SQLite), list, get, search (FTS5), analytics |
+| `reminders` | ✅ | Automation | sync, list (--overdue/--upcoming/--list/--completed/--all), get, search, analytics |
+| `calendar` (alias `cal`) | ✅ | Automation | sync (windowed), agenda, list, search, analytics |
+| `safari` | ✅ | Full Disk Access | history, search, top-sites, bookmarks (via plutil), analytics |
 
-Source: `internal/cli/` — one file per command group.
+Source: `internal/cli/` — one `<group>.go` + `<group>_db.go` per command group.
+Shared: `jxa.go` (JXA runner + Automation-denial detection), `helpers.go`
+(shortID/shortDate/joinArgs, color), `doctor.go`, `root.go`.
+
+**Architecture conventions** (mirror these when adding a group):
+- `sync`-based groups (contacts, notes, reminders, calendar) read a scriptable
+  app via JXA and cache into SQLite under `~/Library/Application Support/icloud-pp-cli/`.
+  Pattern: typed columns + an FTS5 virtual table + a `*_sync_state` row.
+- Direct-read groups (photos, messages, safari) open the OS database read-only
+  via the `file:` URI with `mode=ro` (load-bearing on modernc.org/sqlite).
+- Every command supports `--json`/`--agent`. Resolve-by-prefix via `GetByAny`
+  (full id, exact UUID, or escaped-LIKE prefix). Never interpolate user input
+  into AppleScript/JXA — pass as argv after `--`.
 
 ## Deploying the website
 

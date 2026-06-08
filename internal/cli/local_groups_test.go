@@ -170,3 +170,79 @@ func TestCocoaSeconds(t *testing.T) {
 		t.Errorf("cocoaSeconds(2001-01-01) = %d, want 0", got)
 	}
 }
+
+func TestFriendlyContainer(t *testing.T) {
+	cases := map[string]string{
+		"com~apple~CloudDocs":              "iCloud Drive",
+		"57T9237FN3~net~whatsapp~WhatsApp": "WhatsApp",
+		"iCloud~md~obsidian":               "obsidian",
+		"com~apple~Pages":                  "Pages",
+	}
+	for in, want := range cases {
+		if got := friendlyContainer(in); got != want {
+			t.Errorf("friendlyContainer(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestIsTeamID(t *testing.T) {
+	if !isTeamID("57T9237FN3") {
+		t.Error("valid team ID rejected")
+	}
+	if isTeamID("apple") || isTeamID("57t9237fn3") || isTeamID("57T9237FN3X") {
+		t.Error("invalid team ID accepted (lowercase / wrong length)")
+	}
+}
+
+func TestCloudLogicalName(t *testing.T) {
+	if got := cloudLogicalName(".Report.pdf.icloud"); got != "Report.pdf" {
+		t.Errorf("cloudLogicalName placeholder = %q, want Report.pdf", got)
+	}
+	if got := cloudLogicalName("Report.pdf"); got != "Report.pdf" {
+		t.Errorf("cloudLogicalName passthrough = %q", got)
+	}
+}
+
+func TestHumanBytes(t *testing.T) {
+	cases := map[int64]string{
+		0:          "0 B",
+		512:        "512 B",
+		1024:       "1.0 KB",
+		1536:       "1.5 KB",
+		1073741824: "1.0 GB",
+	}
+	for in, want := range cases {
+		if got := humanBytes(in); got != want {
+			t.Errorf("humanBytes(%d) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestCallServiceLabel(t *testing.T) {
+	cases := map[string]string{
+		"com.apple.FaceTimeVideo": "facetime-video",
+		"com.apple.FaceTimeAudio": "facetime-audio",
+		"com.apple.Telephony":     "phone",
+		"":                        "",
+		"com.example.Unknown":     "com.example.Unknown",
+	}
+	for in, want := range cases {
+		if got := callServiceLabel(in); got != want {
+			t.Errorf("callServiceLabel(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestFormatDuration(t *testing.T) {
+	cases := map[int64]string{
+		0:    "—",
+		45:   "45s",
+		90:   "1m 30s",
+		3661: "1h 1m",
+	}
+	for in, want := range cases {
+		if got := formatDuration(in); got != want {
+			t.Errorf("formatDuration(%d) = %q, want %q", in, got, want)
+		}
+	}
+}

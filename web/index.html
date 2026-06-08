@@ -4,24 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>icloudcli — iCloud CLI for macOS | Photos, Messages &amp; Contacts from the Terminal</title>
-  <meta name="description" content="Open-source macOS CLI to query and manage your iCloud data from the terminal — Photos, Messages, Contacts, and more. Find storage hogs, search conversations, export contacts — no API token, no login.">
+  <meta name="description" content="Open-source macOS CLI for your iCloud data from the terminal — Photos, Messages, Contacts, Notes, Reminders, Calendar, and Safari. Reads on-device databases directly. No API token, no login. Agent-ready JSON.">
   <link rel="canonical" href="https://icloudcli.com">
 
   <!-- Open Graph -->
   <meta property="og:title" content="icloudcli — iCloud CLI for macOS">
-  <meta property="og:description" content="Query, audit, and automate from the terminal. Photos, Messages, Contacts — reads local SQLite directly. No API token, no login. Agent-ready JSON output.">
+  <meta property="og:description" content="Photos, Messages, Contacts, Notes, Reminders, Calendar, Safari — all from the terminal. Reads on-device data directly. No API token, no login. Agent-ready JSON output.">
   <meta property="og:url" content="https://icloudcli.com">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://icloudcli.com/og.png">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="icloudcli — Query your iCloud Photos library from the terminal">
+  <meta property="og:image:alt" content="icloudcli — Query your iCloud data from the terminal">
 
   <!-- Twitter / X Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="icloudcli — iCloud CLI for macOS">
-  <meta name="twitter:description" content="Photos, Messages, Contacts from the terminal. Reads local SQLite directly — no API token, no login.">
+  <meta name="twitter:description" content="Photos, Messages, Contacts, Notes, Reminders, Calendar, Safari — from the terminal. Reads on-device data directly. No API token, no login.">
   <meta name="twitter:image" content="https://icloudcli.com/og.png">
 
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☁️</text></svg>">
@@ -38,7 +38,7 @@
     "@type": "SoftwareApplication",
     "name": "icloudcli",
     "alternateName": "icloud-pp-cli",
-    "description": "Open-source macOS command-line tool that reads your iCloud Photos library directly from SQLite. Find large files, audit storage by year, delete storage hogs, and automate with agent-ready JSON output.",
+    "description": "Open-source macOS command-line tool that reads your iCloud data directly on-device — Photos, Messages, Contacts, Notes, Reminders, Calendar, and Safari. Find large files, search every conversation and note, audit reminders, and automate with agent-ready JSON output.",
     "url": "https://icloudcli.com",
     "downloadUrl": "https://github.com/matysanchez/icloudcli",
     "applicationCategory": "DeveloperApplication",
@@ -47,7 +47,7 @@
     "license": "https://www.apache.org/licenses/LICENSE-2.0",
     "author": { "@type": "Person", "name": "Matias Sanchez" },
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-    "keywords": "iCloud Photos CLI, iMessage CLI, iCloud Contacts CLI, macOS terminal, iCloud storage management, Photos library, Messages chat.db, Contacts SQLite, command line, developer tools"
+    "keywords": "iCloud CLI, iCloud Photos CLI, iMessage CLI, iCloud Contacts CLI, Apple Notes CLI, Reminders CLI, Calendar CLI, Safari history CLI, macOS terminal, chat.db, command line, developer tools"
   }
   </script>
   <style>
@@ -827,9 +827,10 @@
 
       <h1>Your entire iCloud,<br>from the terminal.</h1>
       <p class="hero-sub">
-        icloudcli reads your local SQLite databases directly — Photos, Messages, Contacts, and more.
-        No API token, no login. Find storage hogs, search conversations, export contacts,
-        and automate it all with JSON output.
+        icloudcli reads your on-device data directly — Photos, Messages, Contacts, Notes,
+        Reminders, Calendar, and Safari. No API token, no login, no cloud round-trip.
+        Find storage hogs, search every conversation and note, audit your reminders,
+        and pipe it all to <code style="font-family:var(--mono);font-size:.92em">jq</code> or any AI agent with <code style="font-family:var(--mono);font-size:.92em">--agent</code> JSON.
       </p>
     </div>
 
@@ -1055,60 +1056,130 @@
         </div>
       </div>
 
-      <!-- 8. Messages search (coming) -->
+      <!-- 8. Messages audit (live) -->
       <div class="example">
         <div class="example-header">
           <div class="example-meta">
-            <div class="example-title">Search your iMessage conversations</div>
-            <div class="example-desc">Query <code style="font-family:var(--mono);font-size:.88em">chat.db</code> directly — search by contact, keyword, or date range. No iCloud API, just the local SQLite database macOS already keeps on your machine.</div>
+            <div class="example-title">Audit your entire iMessage history</div>
+            <div class="example-desc">Reads <code style="font-family:var(--mono);font-size:.88em">chat.db</code> directly and decodes the modern <code style="font-family:var(--mono);font-size:.88em">attributedBody</code> blob so nothing post-2020 is missed. One command surfaces unique conversations, your longest threads, and who you talk to most.</div>
           </div>
-          <span class="badge badge-coming">Coming</span>
+          <span class="badge badge-live">Live</span>
         </div>
-        <div class="term">
-<span class="prompt">$ </span><span class="cmd">icloud-pp-cli messages search --from "Mom" --after 2025-01-01 --agent | jq '.[0]'</span>
-<span class="out" style="opacity:.45">{
-  "chat":   "Mom",
-  "date":   "2025-06-15",
-  "text":   "Are you coming for dinner?",
-  "handle": "+1 (305) 555-0183"
-}</span>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli messages audit --top 3</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">Conversations</span></div>
+<div class="tl tl-out"><span class="hi">  1,284 unique · 1,032 DMs · 252 groups</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">Longest by message count</span></div>
+<div class="tl tl-out"><span class="med">  Mom            dm     48,201   7.4 yrs</span></div>
+<div class="tl tl-out"><span class="med">  Weekend Crew   group  31,544   5.1 yrs</span></div>
+<div class="tl tl-out"><span class="med">  Alex Rivera    dm     22,910   6.8 yrs</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">Direction</span></div>
+<div class="tl tl-out"><span class="ok">  from me:     312,887 (47.3%)</span></div>
+<div class="tl tl-out"><span class="out">  from others: 348,012 (52.7%)</span></div>
         </div>
       </div>
 
-      <!-- 9. Contacts export (coming) -->
+      <!-- 9. Contacts duplicates (live) -->
       <div class="example">
         <div class="example-header">
           <div class="example-meta">
-            <div class="example-title">Export and search your Contacts</div>
-            <div class="example-desc">Reads the AddressBook SQLite store directly. Export to JSON, search by name or email, pipe into scripts or AI workflows — no Contacts.app, no vCard wrangling.</div>
+            <div class="example-title">Find and merge duplicate contacts</div>
+            <div class="example-desc">Syncs Contacts.app into a local cache, then finds likely duplicates by name, phone, or email — and hands you ready-to-paste merge commands. Merging dedupes phones, emails, and addresses, then syncs back to iCloud.</div>
           </div>
-          <span class="badge badge-coming">Coming</span>
+          <span class="badge badge-live">Live</span>
         </div>
-        <div class="term">
-<span class="prompt">$ </span><span class="cmd">icloud-pp-cli contacts list --agent | jq '[.[] | {name, email: .emails[0]}][0:3]'</span>
-<span class="out" style="opacity:.45">[
-  { "name": "Alex Rivera",  "email": "alex@example.com"   },
-  { "name": "Jordan Lee",   "email": "jordan@example.com" },
-  { "name": "Sam Torres",   "email": "sam@example.com"    }
-]</span>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli contacts duplicates</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">  Likely duplicates (same name):</span></div>
+<div class="tl tl-out"><span class="hi">  Danilo Gomes        [a1b2c3d4]   2 phones, 1 email</span></div>
+<div class="tl tl-out"><span class="hi">  Danilo Gomes SF     [e5f6a7b8]   1 phone</span></div>
+<div class="tl tl-out"><span class="out">    → icloud-pp-cli contacts merge a1b2c3d4 e5f6a7b8 --confirm</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli contacts merge a1b2c3d4 e5f6a7b8 --confirm</span></div>
+<div class="tl tl-out"><span class="ok">  ✓ merged — 1 phone added, kept 1 contact</span></div>
         </div>
       </div>
 
-      <!-- 10. Find My (coming) -->
+      <!-- 10. Notes search (live) -->
       <div class="example">
         <div class="example-header">
           <div class="example-meta">
-            <div class="example-title">Check your Find My devices</div>
-            <div class="example-desc">List all devices registered to your Apple ID — name, last-seen timestamp, and battery level — straight from the local Find My cache.</div>
+            <div class="example-title">Full-text search your Notes</div>
+            <div class="example-desc">Pulls every note into a local FTS5 index (folders and accounts included). Search titles and bodies instantly. Password-protected notes stay private — only their metadata is read.</div>
           </div>
-          <span class="badge badge-coming">Coming</span>
+          <span class="badge badge-live">Live</span>
         </div>
-        <div class="term">
-<span class="prompt">$ </span><span class="cmd">icloud-pp-cli findmy devices</span>
-<span class="out" style="opacity:.45">  Device           Last seen       Battery
-  iPhone 16 Pro    2 minutes ago   87%
-  MacBook Pro 14   just now        charging
-  AirPods Pro 2    1 hour ago      64%</span>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli notes search "wifi password"</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">  ID        Title                Folder     Words  Modified</span></div>
+<div class="tl tl-out"><span class="hi">  p1842     House guide          Home       412    2026-05-30</span></div>
+<div class="tl tl-out"><span class="med">  p0931     Airbnb checkout      Travel     88     2026-04-12</span></div>
+        </div>
+      </div>
+
+      <!-- 11. Reminders overdue (live) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">See what's overdue across every list</div>
+            <div class="example-desc">Open reminders, soonest-due first, with overdue items flagged. Filter by list, by <code style="font-family:var(--mono);font-size:.88em">--upcoming N</code> days, or get a full breakdown with <code style="font-family:var(--mono);font-size:.88em">analytics</code>.</div>
+          </div>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli reminders list --overdue</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">     Reminder              List       Due           Pri</span></div>
+<div class="tl tl-out"><span class="hi">  ○  Renew passport        Personal   2026-05-20 ⚠  high</span></div>
+<div class="tl tl-out"><span class="med">  ○  Pay parking ticket    Personal   2026-06-01 ⚠</span></div>
+<div class="tl tl-out"><span class="med">  ○  Send invoice          Work       2026-06-05 ⚠  ⚑ medium</span></div>
+        </div>
+      </div>
+
+      <!-- 12. Calendar agenda (live) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Your week at a glance</div>
+            <div class="example-desc">A clean agenda grouped by day, pulled from every calendar. Search by keyword, list an explicit range, or run <code style="font-family:var(--mono);font-size:.88em">analytics</code> for scheduled hours and your busiest weekday.</div>
+          </div>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli calendar agenda --days 3</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="hi">Mon, Jun 8 2026</span></div>
+<div class="tl tl-out"><span class="out">  09:30–10:00  Standup          [Work]</span></div>
+<div class="tl tl-out"><span class="out">  13:00–14:00  Lunch w/ Sam     · Cafe Habana  [Personal]</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="hi">Tue, Jun 9 2026</span></div>
+<div class="tl tl-out"><span class="out">  all-day      Flight to NYC    [Travel]</span></div>
+        </div>
+      </div>
+
+      <!-- 13. Safari top sites (live) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">See where your browsing time goes</div>
+            <div class="example-desc">Reads Safari's <code style="font-family:var(--mono);font-size:.88em">History.db</code> read-only. Rank your most-visited domains, search history by URL or title, or list bookmarks with their folder path.</div>
+          </div>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli safari top-sites --limit 5</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">  Domain            Visits   URLs</span></div>
+<div class="tl tl-out"><span class="hi">  github.com        4,821    932</span></div>
+<div class="tl tl-out"><span class="hi">  news.ycombinator  2,140    611</span></div>
+<div class="tl tl-out"><span class="med">  youtube.com       1,907    1,204</span></div>
+<div class="tl tl-out"><span class="med">  google.com        1,455    1,322</span></div>
+<div class="tl tl-out"><span class="ok">  developer.apple   903      488</span></div>
         </div>
       </div>
 
@@ -1238,7 +1309,51 @@
           </div>
         </div>
 
-        <!-- 7. Suggest your own -->
+        <!-- 7. Messages year in review -->
+        <div class="agent-card" style="--card-accent:#0ea5e9">
+          <div class="agent-card-body">
+            <div class="agent-card-tag">Messages</div>
+            <div class="agent-card-title">Your year in conversations.</div>
+            <div class="agent-card-desc">Turn a decade of iMessage into a who-you-talk-to-most report — no data leaves your Mac.</div>
+          </div>
+          <div class="agent-card-media ph-stats">
+            <div class="ph-stats-num">661K</div>
+            <div class="ph-stats-label">messages analyzed</div>
+            <button class="agent-card-copy" onclick="copyAgent(this)" aria-label="Copy prompt"
+              data-copy="Give me a year-in-review of my iMessages. Run `icloud-pp-cli messages audit --top 10 --agent` and `icloud-pp-cli messages stats --agent`. Summarize: my total messages this year vs last, my five most-active conversations, my from-me vs from-others ratio, and which month I texted the most. Keep it fun and concise.">Copy Prompt</button>
+          </div>
+        </div>
+
+        <!-- 8. Weekly review -->
+        <div class="agent-card" style="--card-accent:#14b8a6">
+          <div class="agent-card-body">
+            <div class="agent-card-tag">Reminders · Calendar</div>
+            <div class="agent-card-title">Your Monday briefing.</div>
+            <div class="agent-card-desc">Combine overdue reminders and the week ahead into one plain-English start-of-week digest.</div>
+          </div>
+          <div class="agent-card-media ph-stats">
+            <div class="ph-stats-num">7 days</div>
+            <div class="ph-stats-label">planned for you</div>
+            <button class="agent-card-copy" onclick="copyAgent(this)" aria-label="Copy prompt"
+              data-copy="Build me a Monday morning briefing. Run `icloud-pp-cli reminders list --overdue --agent`, `icloud-pp-cli reminders list --upcoming 7 --agent`, and `icloud-pp-cli calendar agenda --days 7 --agent`. Write a short briefing: what's overdue and needs attention today, what's due this week, and my key meetings each day. Flag any day that looks overbooked.">Copy Prompt</button>
+          </div>
+        </div>
+
+        <!-- 9. Notes cleanup -->
+        <div class="agent-card" style="--card-accent:#eab308">
+          <div class="agent-card-body">
+            <div class="agent-card-tag">Notes</div>
+            <div class="agent-card-title">Find what you wrote down.</div>
+            <div class="agent-card-desc">Surface stale, empty, and duplicate notes — and resurface the ones worth keeping.</div>
+          </div>
+          <div class="agent-card-media ph-stamp">
+            <div class="ph-stamp-img"></div>
+            <button class="agent-card-copy" onclick="copyAgent(this)" aria-label="Copy prompt"
+              data-copy="Help me tidy my Apple Notes. Run `icloud-pp-cli notes analytics --agent` and `icloud-pp-cli notes list --limit 500 --agent`. Tell me: how many notes are empty or near-empty, which folders are the most cluttered, and surface 10 notes I haven't touched in over a year that look like they still matter. Suggest a cleanup plan.">Copy Prompt</button>
+          </div>
+        </div>
+
+        <!-- 10. Suggest your own -->
         <div class="agent-card agent-suggest-card">
           <div class="agent-card-body">
             <span class="agent-card-icon" style="font-size:1.9rem;line-height:1;margin-bottom:14px;display:block">💡</span>
@@ -1284,7 +1399,7 @@
   <div class="container">
     <p class="section-label">Reference</p>
     <h2>icloudcli command reference</h2>
-    <p class="section-intro">All commands accept <code style="font-family:var(--mono);font-size:.9em">--json</code>, <code style="font-family:var(--mono);font-size:.9em">--compact</code>, <code style="font-family:var(--mono);font-size:.9em">--no-color</code>, and <code style="font-family:var(--mono);font-size:.9em">--agent</code> (sets all three). Use <code style="font-family:var(--mono);font-size:.9em">--library</code> to point at a non-default Photos library path.</p>
+    <p class="section-intro">Every command accepts <code style="font-family:var(--mono);font-size:.9em">--json</code>, <code style="font-family:var(--mono);font-size:.9em">--compact</code>, <code style="font-family:var(--mono);font-size:.9em">--no-color</code>, and <code style="font-family:var(--mono);font-size:.9em">--agent</code> (sets all three). The Contacts, Notes, Reminders, and Calendar groups keep a local SQLite cache — run <code style="font-family:var(--mono);font-size:.9em">sync</code> once, then every read is instant and offline. Photos, Messages, and Safari read their databases directly.</p>
 
     <div class="cmd-groups">
 
@@ -1335,59 +1450,157 @@
       </div>
 
       <div class="cmd-group">
-        <div class="cmd-group-header">messages &nbsp;<span style="font-weight:400;opacity:.5">coming</span></div>
+        <div class="cmd-group-header">messages</div>
         <div class="cmd-list">
           <div class="cmd-row">
             <code>messages list-chats</code>
-            <span class="cmd-row-desc">List all conversations — name, handle, last message date, and message count</span>
-            <span class="badge badge-coming cmd-row-badge">Coming</span>
+            <span class="cmd-row-desc">List conversations by most-recent activity — name, handle, participant count, message count, last preview. Flags: <code style="font-family:var(--mono);font-size:.82em">--limit</code>, <code style="font-family:var(--mono);font-size:.82em">--since</code>, <code style="font-family:var(--mono);font-size:.82em">--include-empty</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
           <div class="cmd-row">
             <code>messages search</code>
-            <span class="cmd-row-desc">Search messages by contact, keyword, or date range. Flags: <code style="font-family:var(--mono);font-size:.82em">--from</code>, <code style="font-family:var(--mono);font-size:.82em">--text</code>, <code style="font-family:var(--mono);font-size:.82em">--after</code>, <code style="font-family:var(--mono);font-size:.82em">--before</code></span>
-            <span class="badge badge-coming cmd-row-badge">Coming</span>
+            <span class="cmd-row-desc">Search message bodies — decodes the modern <code style="font-family:var(--mono);font-size:.82em">attributedBody</code> blob so post-2020 texts aren't missed. Flags: <code style="font-family:var(--mono);font-size:.82em">--chat</code>, <code style="font-family:var(--mono);font-size:.82em">--handle</code>, <code style="font-family:var(--mono);font-size:.82em">--from-me</code>, <code style="font-family:var(--mono);font-size:.82em">--since</code>, <code style="font-family:var(--mono);font-size:.82em">--until</code>, <code style="font-family:var(--mono);font-size:.82em">--limit</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>messages stats</code>
+            <span class="cmd-row-desc">Totals, by-year breakdown, and top handles by message count. Flags: <code style="font-family:var(--mono);font-size:.82em">--top-handles</code>, <code style="font-family:var(--mono);font-size:.82em">--include-tapbacks</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>messages audit</code>
+            <span class="cmd-row-desc">Deep analysis — unique conversations (DM vs group), longest threads by count and by date span, activity recency, per-chat distribution, from-me vs from-others. Flags: <code style="font-family:var(--mono);font-size:.82em">--top</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
           <div class="cmd-row">
             <code>messages export</code>
-            <span class="cmd-row-desc">Export a full conversation thread to JSON or plain text</span>
-            <span class="badge badge-coming cmd-row-badge">Coming</span>
+            <span class="cmd-row-desc">Export a chat (or <code style="font-family:var(--mono);font-size:.82em">--chat all</code>) to JSON with attachment paths. Flags: <code style="font-family:var(--mono);font-size:.82em">--out</code>, <code style="font-family:var(--mono);font-size:.82em">--since</code>, <code style="font-family:var(--mono);font-size:.82em">--until</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
         </div>
       </div>
 
       <div class="cmd-group">
-        <div class="cmd-group-header">contacts &nbsp;<span style="font-weight:400;opacity:.5">coming</span></div>
+        <div class="cmd-group-header">contacts</div>
         <div class="cmd-list">
           <div class="cmd-row">
-            <code>contacts list</code>
-            <span class="cmd-row-desc">List all contacts with filter and sort options. Reads AddressBook SQLite directly.</span>
-            <span class="badge badge-coming cmd-row-badge">Coming</span>
+            <code>contacts sync</code>
+            <span class="cmd-row-desc">Pull all contacts from Contacts.app via JXA into a local SQLite cache. Run once; re-run with <code style="font-family:var(--mono);font-size:.82em">--force</code>.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
           <div class="cmd-row">
-            <code>contacts search</code>
-            <span class="cmd-row-desc">Search contacts by name, email, phone, or note</span>
-            <span class="badge badge-coming cmd-row-badge">Coming</span>
+            <code>contacts list / get / search</code>
+            <span class="cmd-row-desc">List, show one (8-char UUID prefix lookup), or full-text search across name, org, phones, emails, and notes (FTS5).</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
           <div class="cmd-row">
-            <code>contacts export</code>
-            <span class="cmd-row-desc">Export all contacts to JSON — no vCard, no Contacts.app</span>
-            <span class="badge badge-coming cmd-row-badge">Coming</span>
+            <code>contacts merge / duplicates</code>
+            <span class="cmd-row-desc">Find likely duplicates (name / phone / email) and merge two contacts — dedupes phones, emails, URLs, addresses. Dry run until <code style="font-family:var(--mono);font-size:.82em">--confirm</code>.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>contacts create / update / delete</code>
+            <span class="cmd-row-desc">Write back to Contacts.app safely (values passed as out-of-band AppleScript args — no injection). Syncs to iCloud automatically.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>contacts analytics</code>
+            <span class="cmd-row-desc">Group by country (E.164 dial-code resolution), email domain, and missing-field coverage.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
         </div>
       </div>
 
       <div class="cmd-group">
-        <div class="cmd-group-header">findmy &nbsp;<span style="font-weight:400;opacity:.5">coming</span></div>
+        <div class="cmd-group-header">notes</div>
         <div class="cmd-list">
           <div class="cmd-row">
-            <code>findmy devices</code>
-            <span class="cmd-row-desc">List all Apple ID devices — name, last-seen time, and battery level from local Find My cache</span>
-            <span class="badge badge-coming cmd-row-badge">Coming</span>
+            <code>notes sync</code>
+            <span class="cmd-row-desc">Pull all notes from Notes.app via JXA into a local SQLite cache with folder and account. Password-protected notes expose metadata only.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
           <div class="cmd-row">
-            <code>findmy items</code>
-            <span class="cmd-row-desc">List AirTags and third-party Find My accessories with last-seen location</span>
-            <span class="badge badge-coming cmd-row-badge">Coming</span>
+            <code>notes list / get / search</code>
+            <span class="cmd-row-desc">List by most-recently modified, show a full body, or full-text search titles and bodies (FTS5). Flags: <code style="font-family:var(--mono);font-size:.82em">--limit</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>notes analytics</code>
+            <span class="cmd-row-desc">Word/char totals, averages, shared/locked/empty counts, longest note, and a per-folder breakdown.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">reminders</div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>reminders sync</code>
+            <span class="cmd-row-desc">Pull all reminders from Reminders.app via JXA into a local SQLite cache, with list, priority, due/remind dates.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>reminders list</code>
+            <span class="cmd-row-desc">Open by default, soonest-due first. Flags: <code style="font-family:var(--mono);font-size:.82em">--list</code>, <code style="font-family:var(--mono);font-size:.82em">--completed</code>, <code style="font-family:var(--mono);font-size:.82em">--all</code>, <code style="font-family:var(--mono);font-size:.82em">--overdue</code>, <code style="font-family:var(--mono);font-size:.82em">--upcoming N</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>reminders get / search</code>
+            <span class="cmd-row-desc">Show one reminder, or full-text search across titles, notes, and lists (FTS5).</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>reminders analytics</code>
+            <span class="cmd-row-desc">Open / done / overdue, due today and this week, high-priority and flagged, plus a per-list breakdown.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">calendar &nbsp;<span style="font-weight:400;opacity:.5">alias: cal</span></div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>calendar sync</code>
+            <span class="cmd-row-desc">Pull events within a date window via JXA. Flags: <code style="font-family:var(--mono);font-size:.82em">--back</code> (days history, default 90), <code style="font-family:var(--mono);font-size:.82em">--forward</code> (default 365)</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>calendar agenda</code>
+            <span class="cmd-row-desc">Upcoming events grouped by day (next 7 by default). Flags: <code style="font-family:var(--mono);font-size:.82em">--days</code>, <code style="font-family:var(--mono);font-size:.82em">--calendar</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>calendar list / search</code>
+            <span class="cmd-row-desc">Events in an explicit range (<code style="font-family:var(--mono);font-size:.82em">--from</code>/<code style="font-family:var(--mono);font-size:.82em">--to</code>), or full-text search across titles, locations, and notes.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>calendar analytics</code>
+            <span class="cmd-row-desc">Total events and scheduled hours, per-calendar breakdown, and a busiest-weekday histogram.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">safari</div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>safari history</code>
+            <span class="cmd-row-desc">Recently visited pages, most recent first. Reads History.db read-only. Flags: <code style="font-family:var(--mono);font-size:.82em">--limit</code>, <code style="font-family:var(--mono);font-size:.82em">--domain</code>, <code style="font-family:var(--mono);font-size:.82em">--since</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>safari search / top-sites</code>
+            <span class="cmd-row-desc">Search history by URL and title, or rank the most-visited domains by visit count.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>safari bookmarks</code>
+            <span class="cmd-row-desc">List all bookmarks flattened with their folder path (parsed from Bookmarks.plist).</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
         </div>
       </div>
@@ -1397,8 +1610,13 @@
         <div class="cmd-list">
           <div class="cmd-row">
             <code>doctor</code>
-            <span class="cmd-row-desc">Pre-flight check — verifies macOS, Photos.app, library path, schema, and asset count. Run this first.</span>
+            <span class="cmd-row-desc">Pre-flight check — verifies macOS, Photos library + schema, Messages and Safari Full Disk Access, and Automation for the Notes/Reminders/Calendar groups. Run this first.</span>
             <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>photos search · photos ask</code>
+            <span class="cmd-row-desc">Location/person filters and natural-language queries over your library — on the roadmap.</span>
+            <span class="badge badge-coming cmd-row-badge">Coming</span>
           </div>
         </div>
       </div>
@@ -1462,18 +1680,35 @@ make install">Copy</button>
   ✓ Photos.app installed<br>
 <br></span>
           <span style="color:var(--term-text);font-weight:600">Library</span><br>
-          <span style="color:var(--term-output)">  ✓ Library found<br>
-      ~/Pictures/Photos Library.photoslibrary/...<br>
-  ✓ Library readable (read-only)<br>
-  ✓ Schema valid (ZASSET + ZADDITIONALASSETATTRIBUTES)<br>
+          <span style="color:var(--term-output)">  ✓ Library found · readable (read-only)<br>
+  ✓ Core schema valid (ZASSET + ZADDITIONALASSETATTRIBUTES)<br>
 <br></span>
           <span style="color:var(--term-text);font-weight:600">Assets</span><br>
           <span style="color:var(--term-output)">  ✓ Can query assets<br>
-      129,466 items · 794.31 GB (original sizes)<br>
-      video:       16,829 items<br>
-      photo:       112,637 items<br>
+      130,232 items · 802.12 GB (original sizes)<br>
+<br></span>
+          <span style="color:var(--term-text);font-weight:600">Messages · Safari</span><br>
+          <span style="color:var(--term-output)">  ✓ chat.db &amp; History.db readable (Full Disk Access granted)<br>
+<br></span>
+          <span style="color:var(--term-text);font-weight:600">Automation (Notes · Reminders · Calendar)</span><br>
+          <span style="color:var(--term-output)">  i Approved on first sync<br>
 <br></span>
           <span style="color:#3fb950">All checks passed. Ready to use.</span>
+        </div>
+      </div>
+
+      <div class="install-option">
+        <div class="install-option-label">Permissions — grant once</div>
+        <div class="code-block" style="line-height:1.7">
+          <span style="color:var(--term-text);font-weight:600">Full Disk Access</span> <span style="color:var(--term-output)">— for <strong>messages</strong> and <strong>safari</strong> (they read system SQLite databases).</span><br>
+          <span style="color:var(--term-output)">  System Settings → Privacy &amp; Security → Full Disk Access →<br>
+  add your terminal → quit &amp; reopen it.</span><br>
+          <br>
+          <span style="color:var(--term-text);font-weight:600">Automation</span> <span style="color:var(--term-output)">— for <strong>notes</strong>, <strong>reminders</strong>, and <strong>calendar</strong> (read via JXA).</span><br>
+          <span style="color:var(--term-output)">  macOS prompts on first <code style="font-family:var(--mono)">sync</code> — click OK. Or pre-grant under<br>
+  Privacy &amp; Security → Automation → your terminal.</span><br>
+          <br>
+          <span style="color:var(--term-output)">  <strong>photos</strong> and <strong>contacts</strong> need no extra permission. Re-run <code style="font-family:var(--mono)">doctor</code> anytime.</span>
         </div>
       </div>
 

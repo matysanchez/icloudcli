@@ -68,6 +68,7 @@ Pipe any command for automatic JSON output.`,
 	root.AddCommand(newScreenTimeCmd(f))
 	root.AddCommand(newMusicCmd(f))
 	root.AddCommand(newPodcastsCmd(f))
+	root.AddCommand(newMailCmd(f))
 	root.AddCommand(newDoctorCmd(f))
 
 	return root.Execute()

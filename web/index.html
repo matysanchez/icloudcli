@@ -1191,6 +1191,51 @@
         </div>
       </div>
 
+      <!-- 14. iCloud Drive storage (live) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">See what's really using your iCloud storage</div>
+            <div class="example-desc">Walks iCloud Drive on disk and splits every file into <em>downloaded</em> vs <em>cloud-only</em> — so you can see that one app is holding tens of GB in the cloud while taking almost nothing on your Mac. No special permission needed.</div>
+          </div>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli drive status</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">iCloud Drive</span></div>
+<div class="tl tl-out"><span class="hi">  1,515 files · 566 downloaded · 949 cloud-only</span></div>
+<div class="tl tl-out"><span class="out">  1.1 GB on this Mac · 30.3 GB in the cloud only</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">Top containers</span></div>
+<div class="tl tl-out"><span class="hi">  WhatsApp       61    0 B       26.8 GB (61)</span></div>
+<div class="tl tl-out"><span class="med">  iCloud Drive   1218  1.1 GB    3.4 GB (876)</span></div>
+<div class="tl tl-out"><span class="ok">  Pages          10    0 B       0.1 GB (10)</span></div>
+        </div>
+      </div>
+
+      <!-- 15. Call history (live) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Who you actually talk to</div>
+            <div class="example-desc">Reads your Call History (phone via Continuity + FaceTime) and ranks the people you call most — with names resolved from your synced contacts, total talk time, and missed-call counts.</div>
+          </div>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli calls analytics</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">Call history overview</span></div>
+<div class="tl tl-out"><span class="hi">  3,204 total · 1,712 incoming · 1,492 outgoing · 287 missed</span></div>
+<div class="tl tl-out"><span class="out">  2,940 phone · 264 FaceTime · 9d 4h total talk time</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">Most-contacted</span></div>
+<div class="tl tl-out"><span class="med">  Mom            412   2d 1h</span></div>
+<div class="tl tl-out"><span class="med">  Alex Rivera    198   14h 22m</span></div>
+        </div>
+      </div>
+
     </div><!-- .examples -->
   </div>
 </section>
@@ -1407,7 +1452,7 @@
   <div class="container">
     <p class="section-label">Reference</p>
     <h2>icloudcli command reference</h2>
-    <p class="section-intro">Every command accepts <code style="font-family:var(--mono);font-size:.9em">--json</code>, <code style="font-family:var(--mono);font-size:.9em">--compact</code>, <code style="font-family:var(--mono);font-size:.9em">--no-color</code>, and <code style="font-family:var(--mono);font-size:.9em">--agent</code> (sets all three). The Contacts, Notes, Reminders, and Calendar groups keep a local SQLite cache — run <code style="font-family:var(--mono);font-size:.9em">sync</code> once, then every read is instant and offline. Photos, Messages, and Safari read their databases directly.</p>
+    <p class="section-intro">Every command accepts <code style="font-family:var(--mono);font-size:.9em">--json</code>, <code style="font-family:var(--mono);font-size:.9em">--compact</code>, <code style="font-family:var(--mono);font-size:.9em">--no-color</code>, and <code style="font-family:var(--mono);font-size:.9em">--agent</code> (sets all three). The Contacts, Notes, Reminders, and Calendar groups keep a local SQLite cache — run <code style="font-family:var(--mono);font-size:.9em">sync</code> once, then every read is instant and offline. Photos, Messages, Safari, Calls, and Screen Time read their databases directly; iCloud Drive walks the filesystem. Run <code style="font-family:var(--mono);font-size:.9em">doctor</code> to see which permissions each group needs.</p>
 
     <div class="cmd-groups">
 
@@ -1608,6 +1653,64 @@
           <div class="cmd-row">
             <code>safari bookmarks</code>
             <span class="cmd-row-desc">List all bookmarks flattened with their folder path (parsed from Bookmarks.plist).</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">calls</div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>calls list</code>
+            <span class="cmd-row-desc">Recent phone + FaceTime calls, newest first. Flags: <code style="font-family:var(--mono);font-size:.82em">--missed</code>, <code style="font-family:var(--mono);font-size:.82em">--incoming</code>, <code style="font-family:var(--mono);font-size:.82em">--outgoing</code>, <code style="font-family:var(--mono);font-size:.82em">--since</code>, <code style="font-family:var(--mono);font-size:.82em">--limit</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>calls search / analytics</code>
+            <span class="cmd-row-desc">Search by number/handle/name; analytics shows in/out/missed, phone vs FaceTime, total talk time, and most-contacted. Names resolve from your synced contacts.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">drive</div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>drive status</code>
+            <span class="cmd-row-desc">Summary of iCloud Drive: file count, size on this Mac vs cloud-only, and your top containers.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>drive usage</code>
+            <span class="cmd-row-desc">Per-app storage breakdown — see exactly which apps hold your iCloud space (downloaded vs cloud-only).</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>drive list [subpath]</code>
+            <span class="cmd-row-desc">List entries with per-file local/cloud download state. No special permission — they're your own files.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">screentime &nbsp;<span style="font-weight:400;opacity:.5">alias: st</span></div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>screentime usage</code>
+            <span class="cmd-row-desc">Top apps by foreground time. Flags: <code style="font-family:var(--mono);font-size:.82em">--days</code>, <code style="font-family:var(--mono);font-size:.82em">--since</code>, <code style="font-family:var(--mono);font-size:.82em">--limit</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>screentime web / notifications</code>
+            <span class="cmd-row-desc">Top Safari domains by time, and per-app notification counts.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>screentime analytics</code>
+            <span class="cmd-row-desc">Window overview: total app time, distinct apps, notifications, most-used app. Knowledge store retains ~4 weeks.</span>
             <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
         </div>

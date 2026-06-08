@@ -58,6 +58,9 @@ The leads Worker is deployed independently via `wrangler` from `/Users/matysanch
 | `reminders` | ✅ | Automation | sync, list (--overdue/--upcoming/--list/--completed/--all), get, search, analytics |
 | `calendar` (alias `cal`) | ✅ | Automation | sync (windowed), agenda, list, search, analytics |
 | `safari` | ✅ | Full Disk Access | history, search, top-sites, bookmarks (via plutil), analytics |
+| `calls` | ✅ | Full Disk Access | list (--missed/--incoming/--outgoing/--since), search, analytics. Reads CallHistory.storedata; names resolved from contacts cache |
+| `drive` | ✅ | none | status, usage (per-app), list. Walks ~/Library/Mobile Documents; downloaded vs cloud-only (dataless) detection via st_blocks |
+| `screentime` (alias `st`) | ✅ | Full Disk Access | usage, web, notifications, analytics. Reads knowledgeC.db ZOBJECT streams (~4-week retention) |
 
 Source: `internal/cli/` — one `<group>.go` + `<group>_db.go` per command group.
 Shared: `jxa.go` (JXA runner + Automation-denial detection), `helpers.go`

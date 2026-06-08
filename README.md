@@ -102,6 +102,22 @@ icloud-pp-cli
     bookmarks  All bookmarks, flattened with folder path
     analytics  History overview + top domains
 
+  calls                                            [Full Disk Access]
+    list       Recent calls (--missed, --incoming/--outgoing, --since)
+    search     Match by number, handle, or name
+    analytics  In/out/missed, phone vs FaceTime, talk time, top contacts
+
+  drive                                            [no extra permission]
+    status     Summary: files, downloaded vs cloud-only, top containers
+    usage      Per-app storage breakdown (downloaded vs cloud-only)
+    list       Entries at a path with per-file local/cloud state
+
+  screentime (alias: st)                           [Full Disk Access]
+    usage      Top apps by foreground time (--days, --since)
+    web        Top Safari domains by time
+    notifications  Per-app notification counts
+    analytics  Window overview: total time, apps, notifications
+
   doctor       Pre-flight check for every data source + permissions
 ```
 
@@ -118,8 +134,8 @@ icloudcli never sends data anywhere — but macOS gates some on-device databases
 
 | Group | Permission | How |
 |---|---|---|
-| photos, contacts | none | works out of the box |
-| messages, safari | **Full Disk Access** | System Settings → Privacy & Security → Full Disk Access → add your terminal → quit & reopen |
+| photos, contacts, drive | none | works out of the box |
+| messages, safari, calls, screentime | **Full Disk Access** | System Settings → Privacy & Security → Full Disk Access → add your terminal → quit & reopen |
 | notes, reminders, calendar | **Automation** | macOS prompts on first `sync` — click OK (or pre-grant under Privacy & Security → Automation) |
 
 Run `icloud-pp-cli doctor` anytime to see exactly what's granted and what's missing.

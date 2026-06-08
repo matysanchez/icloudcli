@@ -20,11 +20,13 @@ import (
 func newDoctorCmd(f *rootFlags) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "doctor",
-		Short: "Check system requirements and Photos library access",
+		Short: "Check system requirements and access to every data source",
 		Long: `Run pre-flight checks before using any other command.
 
-Verifies: macOS, Photos.app installation, library path, read access,
-database schema, and asset count.`,
+Verifies: macOS, Photos.app + library schema, Messages and Safari Full Disk
+Access, and the Automation permission the Notes/Reminders/Calendar groups
+need. Each section degrades to a warning so one unavailable source never
+blocks the rest.`,
 		Example: `  icloud-pp-cli doctor
   icloud-pp-cli doctor --library "/Volumes/External/Photos Library.photoslibrary/database/Photos.sqlite"`,
 		RunE: func(cmd *cobra.Command, args []string) error {

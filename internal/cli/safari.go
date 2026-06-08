@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os/exec"
+	"sort"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -32,9 +33,50 @@ with a permission error, run "icloud-pp-cli doctor" for remediation steps.`,
 	safari.AddCommand(newSafariSearchCmd(f))
 	safari.AddCommand(newSafariTopSitesCmd(f))
 	safari.AddCommand(newSafariBookmarksCmd(f))
+	safari.AddCommand(newSafariReadingListCmd(f))
 	safari.AddCommand(newSafariAnalyticsCmd(f))
 
 	return safari
+}
+
+func newSafariReadingListCmd(f *rootFlags) *cobra.Command {
+	var unreadOnly bool
+	cmd := &cobra.Command{
+		Use:     "reading-list",
+		Aliases: []string{"readinglist"},
+		Short:   "List your Safari Reading List (saved-for-later articles)",
+		Example: `  icloud-pp-cli safari reading-list
+  icloud-pp-cli safari reading-list --unread
+  icloud-pp-cli safari reading-list --json`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			items, err := readReadingList("")
+			if err != nil {
+				return err
+			}
+			if unreadOnly {
+				filtered := items[:0]
+				for _, it := range items {
+					if it.Unread {
+						filtered = append(filtered, it)
+					}
+				}
+				items = filtered
+			}
+			if len(items) == 0 {
+				fmt.Fprintln(out, "Reading List is empty.")
+				return nil
+			}
+			if f.asJSON || !isTerminal(out) {
+				return printJSON(out, items)
+			}
+			printReadingList(f, out, items)
+			fmt.Fprintf(out, "\n%s items\n", formatInt(int64(len(items))))
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&unreadOnly, "unread", false, "Show only unread items")
+	return cmd
 }
 
 func newSafariHistoryCmd(f *rootFlags) *cobra.Command {
@@ -245,13 +287,17 @@ type Bookmark struct {
 
 // plistNode mirrors the recursive Bookmarks.plist shape after plutil JSON
 // conversion: a node is either a list (WebBookmarkTypeList, with Children) or a
-// leaf (WebBookmarkTypeLeaf, with URLString + URIDictionary.title).
+// leaf (WebBookmarkTypeLeaf, with URLString + URIDictionary.title). Reading List
+// leaves additionally carry a "ReadingList" dict (DateAdded, PreviewText) and,
+// once opened, a "ReadingListNonSync" dict with DateLastViewed.
 type plistNode struct {
-	WebBookmarkType string                 `json:"WebBookmarkType"`
-	Title           string                 `json:"Title"`
-	URLString       string                 `json:"URLString"`
-	URIDictionary   map[string]interface{} `json:"URIDictionary"`
-	Children        []plistNode            `json:"Children"`
+	WebBookmarkType    string                 `json:"WebBookmarkType"`
+	Title              string                 `json:"Title"`
+	URLString          string                 `json:"URLString"`
+	URIDictionary      map[string]interface{} `json:"URIDictionary"`
+	ReadingList        map[string]interface{} `json:"ReadingList"`
+	ReadingListNonSync map[string]interface{} `json:"ReadingListNonSync"`
+	Children           []plistNode            `json:"Children"`
 }
 
 // readBookmarks converts Bookmarks.plist to JSON via plutil and flattens the
@@ -312,7 +358,91 @@ func flattenBookmarks(node plistNode, folder string, out *[]Bookmark) {
 	}
 }
 
+// ── reading list ──────────────────────────────────────────────────────────────
+
+// ReadingListItem is one saved Reading List entry.
+type ReadingListItem struct {
+	Title   string `json:"title"`
+	URL     string `json:"url"`
+	Added   string `json:"added,omitempty"`
+	Preview string `json:"preview,omitempty"`
+	Unread  bool   `json:"unread"`
+}
+
+// readReadingList parses Bookmarks.plist and returns the Reading List entries.
+// Reading List leaves are identified by the presence of a "ReadingList" dict.
+func readReadingList(path string) ([]ReadingListItem, error) {
+	if path == "" {
+		path = defaultSafariBookmarksPath()
+	}
+	cmd := exec.Command("plutil", "-convert", "json", "-o", "-", path)
+	data, err := cmd.Output()
+	if err != nil {
+		if ee, ok := err.(*exec.ExitError); ok {
+			return nil, configErr(fmt.Errorf("reading bookmarks via plutil failed (Full Disk Access may be required): %s",
+				string(ee.Stderr)))
+		}
+		return nil, fmt.Errorf("running plutil: %w", err)
+	}
+	var root plistNode
+	if err := json.Unmarshal(data, &root); err != nil {
+		return nil, fmt.Errorf("parsing bookmarks JSON: %w", err)
+	}
+	var out []ReadingListItem
+	collectReadingList(root, &out)
+	// Newest first by DateAdded string (RFC3339-ish sorts lexically).
+	sort.Slice(out, func(i, j int) bool { return out[i].Added > out[j].Added })
+	return out, nil
+}
+
+// collectReadingList walks the tree and appends every leaf carrying a ReadingList
+// dict, recording when it was added, its preview text, and whether it's unread.
+func collectReadingList(node plistNode, out *[]ReadingListItem) {
+	if node.WebBookmarkType == "WebBookmarkTypeLeaf" && node.ReadingList != nil {
+		item := ReadingListItem{URL: node.URLString}
+		if node.URIDictionary != nil {
+			if t, ok := node.URIDictionary["title"].(string); ok {
+				item.Title = t
+			}
+		}
+		if item.Title == "" {
+			item.Title = node.URLString
+		}
+		if v, ok := node.ReadingList["DateAdded"].(string); ok {
+			item.Added = v
+		}
+		if v, ok := node.ReadingList["PreviewText"].(string); ok {
+			item.Preview = v
+		}
+		// Unread = never viewed (no DateLastViewed in the non-sync dict).
+		item.Unread = true
+		if node.ReadingListNonSync != nil {
+			if _, ok := node.ReadingListNonSync["DateLastViewed"]; ok {
+				item.Unread = false
+			}
+		}
+		*out = append(*out, item)
+	}
+	for _, c := range node.Children {
+		collectReadingList(c, out)
+	}
+}
+
 // ── rendering ─────────────────────────────────────────────────────────────────
+
+func printReadingList(f *rootFlags, out io.Writer, items []ReadingListItem) {
+	tw := newTabWriter(out)
+	fmt.Fprintln(tw, bold(f, out, "Added")+"\t"+bold(f, out, "")+"\t"+bold(f, out, "Title")+"\t"+bold(f, out, "URL"))
+	for _, it := range items {
+		mark := " "
+		if it.Unread {
+			mark = green(f, out, "●") // unread dot
+		}
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n",
+			shortDate(it.Added), mark, truncate(it.Title, 38), truncate(it.URL, 44))
+	}
+	tw.Flush()
+}
 
 func printVisitsTable(f *rootFlags, out io.Writer, visits []HistoryVisit) {
 	tw := newTabWriter(out)

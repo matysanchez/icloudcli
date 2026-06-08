@@ -31,10 +31,12 @@ const cocoaEpoch int64 = 978307200
 // is not uniformly backfilled to nanoseconds on every row even on modern DBs.
 const nanosecondMagnitude int64 = 1_000_000_000_000
 
-// errFDADenied is the sentinel returned when chat.db access fails with EPERM,
-// which on macOS indicates Full Disk Access has not been granted to the
-// running process. The doctor command checks for this with errors.Is.
-var errFDADenied = errors.New("chat.db cannot be read: Full Disk Access not granted")
+// errFDADenied is the sentinel returned when a system database access fails with
+// EPERM, which on macOS indicates Full Disk Access has not been granted to the
+// running process. Shared by the messages, safari, and calls readers; the doctor
+// command and each opener check for it with errors.Is. The wrapping opener
+// appends the specific database path, so the message stays source-agnostic.
+var errFDADenied = errors.New("Full Disk Access not granted")
 
 // Tapback associated_message_type values. Rows whose associated_message_guid
 // is non-null and type falls in this range are reactions, not real messages,

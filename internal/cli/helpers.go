@@ -133,3 +133,8 @@ func shortDateTime(s string) string {
 func joinArgs(args []string) string {
 	return strings.TrimSpace(strings.Join(args, " "))
 }
+
+// containsFold reports whether substr occurs in s, case-insensitively.
+func containsFold(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
+}

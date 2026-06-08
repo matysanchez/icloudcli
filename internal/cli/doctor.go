@@ -227,20 +227,26 @@ blocks the rest.`,
 			}
 			fdaProbe("Call History", defaultCallHistoryPath(), openCallHistory)
 			fdaProbe("Screen Time", defaultKnowledgeDBPath(), openKnowledgeDB)
+			fdaProbe("Mail", defaultMailIndexPath(), openMailIndex)
 
-			// ── iCloud Drive (no special permission) ──────────────────
+			// ── No-permission data sources ────────────────────────────
 			fmt.Fprintln(out)
-			fmt.Fprintln(out, bold(f, out, "iCloud Drive"))
+			fmt.Fprintln(out, bold(f, out, "iCloud Drive · Podcasts"))
 			if _, err := os.Stat(mobileDocumentsPath()); err != nil {
 				warn("iCloud Drive not found — is iCloud Drive enabled?",
 					fmt.Sprintf("Expected at: %s", mobileDocumentsPath()))
 			} else {
 				fmt.Fprintf(out, "  %s %s\n", green(f, out, "✓"), "iCloud Drive readable (no extra permission needed)")
 			}
+			if _, err := os.Stat(defaultPodcastsDBPath()); err != nil {
+				warn("Podcasts library not present", "Open Apple Podcasts once to create it.")
+			} else {
+				fmt.Fprintf(out, "  %s %s\n", green(f, out, "✓"), "Podcasts library readable (no extra permission needed)")
+			}
 
 			// ── Automation note ───────────────────────────────────────
 			fmt.Fprintln(out)
-			fmt.Fprintln(out, bold(f, out, "Automation (Notes · Reminders · Calendar)"))
+			fmt.Fprintln(out, bold(f, out, "Automation (Notes · Reminders · Calendar · Music)"))
 			fmt.Fprintf(out, "  %s %s\n", yellow(f, out, "i"),
 				"These groups read scriptable apps via Automation; macOS prompts on first sync.")
 			fmt.Fprintln(out, "      Approve the prompt, or pre-grant under System Settings >")

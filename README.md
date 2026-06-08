@@ -100,6 +100,7 @@ icloud-pp-cli
     search     Search history by URL and title
     top-sites  Most-visited domains by visit count
     bookmarks  All bookmarks, flattened with folder path
+    reading-list  Saved-for-later articles (--unread)
     analytics  History overview + top domains
 
   calls                                            [Full Disk Access]
@@ -118,6 +119,24 @@ icloud-pp-cli
     notifications  Per-app notification counts
     analytics  Window overview: total time, apps, notifications
 
+  music                                            [Automation]
+    sync       Cache the library (artist, album, plays, rating, loved)
+    list       Most-played (--sort recent|name, --artist)
+    search     FTS over name/artist/album/genre
+    playlists  Playlists with track counts (live)
+    analytics  Top artists by plays, top genres, runtime
+
+  podcasts                                         [no extra permission]
+    shows      Subscribed shows + episode counts
+    episodes   Newest first (--show, --downloaded, --unplayed)
+    analytics  Shows, downloads, listening time
+
+  mail                                             [Full Disk Access]
+    list       Messages across accounts (--unread, --flagged, --from, --since)
+    search     By subject or sender
+    mailboxes  Per-mailbox total + unread counts
+    analytics  Totals, unread, flagged, top senders
+
   doctor       Pre-flight check for every data source + permissions
 ```
 
@@ -134,9 +153,9 @@ icloudcli never sends data anywhere — but macOS gates some on-device databases
 
 | Group | Permission | How |
 |---|---|---|
-| photos, contacts, drive | none | works out of the box |
-| messages, safari, calls, screentime | **Full Disk Access** | System Settings → Privacy & Security → Full Disk Access → add your terminal → quit & reopen |
-| notes, reminders, calendar | **Automation** | macOS prompts on first `sync` — click OK (or pre-grant under Privacy & Security → Automation) |
+| photos, contacts, drive, podcasts | none | works out of the box |
+| messages, safari, calls, screentime, mail | **Full Disk Access** | System Settings → Privacy & Security → Full Disk Access → add your terminal → quit & reopen |
+| notes, reminders, calendar, music | **Automation** | macOS prompts on first `sync` — click OK (or pre-grant under Privacy & Security → Automation) |
 
 Run `icloud-pp-cli doctor` anytime to see exactly what's granted and what's missing.
 

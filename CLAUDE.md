@@ -57,10 +57,18 @@ The leads Worker is deployed independently via `wrangler` from `/Users/matysanch
 | `notes` | ✅ | Automation | sync (JXA→SQLite), list, get, search (FTS5), analytics |
 | `reminders` | ✅ | Automation | sync, list (--overdue/--upcoming/--list/--completed/--all), get, search, analytics |
 | `calendar` (alias `cal`) | ✅ | Automation | sync (windowed), agenda, list, search, analytics |
-| `safari` | ✅ | Full Disk Access | history, search, top-sites, bookmarks (via plutil), analytics |
+| `safari` | ✅ | Full Disk Access | history, search, top-sites, bookmarks (via plutil), reading-list, analytics |
 | `calls` | ✅ | Full Disk Access | list (--missed/--incoming/--outgoing/--since), search, analytics. Reads CallHistory.storedata; names resolved from contacts cache |
 | `drive` | ✅ | none | status, usage (per-app), list. Walks ~/Library/Mobile Documents; downloaded vs cloud-only (dataless) detection via st_blocks |
 | `screentime` (alias `st`) | ✅ | Full Disk Access | usage, web, notifications, analytics. Reads knowledgeC.db ZOBJECT streams (~4-week retention) |
+| `music` | ✅ | Automation | sync (JXA→SQLite), list, search, playlists, analytics. Apple Music / iCloud Music Library |
+| `podcasts` | ✅ | none | shows, episodes (--downloaded/--unplayed), analytics. Reads MTLibrary.sqlite (own container) |
+| `mail` | ✅ | Full Disk Access | list, search, mailboxes, analytics. Mail Envelope Index; runtime column detection for schema drift |
+
+**Not built (probed, not tractable):** Find My (encrypted cache), Stocks &
+Shortcuts (TCC-sealed group containers), Freeform (CloudKit-only, no local
+tabular data), Maps (no readable favorites file). `photos ask` (NLP) needs the
+Anthropic API. Health/Wallet are iOS-only; Keychain/Passwords are out of scope.
 
 Source: `internal/cli/` — one `<group>.go` + `<group>_db.go` per command group.
 Shared: `jxa.go` (JXA runner + Automation-denial detection), `helpers.go`

@@ -1236,6 +1236,29 @@
         </div>
       </div>
 
+      <!-- 16. Music wrapped (live) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Your own Music Wrapped, any day of the year</div>
+            <div class="example-desc">Caches your Music library and ranks artists by actual play count — the year-end recap, on demand and entirely local.</div>
+          </div>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli music analytics</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">Music library</span></div>
+<div class="tl tl-out"><span class="hi">  8,412 tracks · 1,204 artists · 942 albums</span></div>
+<div class="tl tl-out"><span class="out">  24d 6h total runtime · 51,308 total plays · 612 loved</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">Top artists (by plays)</span></div>
+<div class="tl tl-out"><span class="med">  Daft Punk        2,140   58</span></div>
+<div class="tl tl-out"><span class="med">  Tame Impala      1,887   41</span></div>
+<div class="tl tl-out"><span class="ok">  Bad Bunny        1,502   33</span></div>
+        </div>
+      </div>
+
     </div><!-- .examples -->
   </div>
 </section>
@@ -1452,7 +1475,7 @@
   <div class="container">
     <p class="section-label">Reference</p>
     <h2>icloudcli command reference</h2>
-    <p class="section-intro">Every command accepts <code style="font-family:var(--mono);font-size:.9em">--json</code>, <code style="font-family:var(--mono);font-size:.9em">--compact</code>, <code style="font-family:var(--mono);font-size:.9em">--no-color</code>, and <code style="font-family:var(--mono);font-size:.9em">--agent</code> (sets all three). The Contacts, Notes, Reminders, and Calendar groups keep a local SQLite cache — run <code style="font-family:var(--mono);font-size:.9em">sync</code> once, then every read is instant and offline. Photos, Messages, Safari, Calls, and Screen Time read their databases directly; iCloud Drive walks the filesystem. Run <code style="font-family:var(--mono);font-size:.9em">doctor</code> to see which permissions each group needs.</p>
+    <p class="section-intro">Every command accepts <code style="font-family:var(--mono);font-size:.9em">--json</code>, <code style="font-family:var(--mono);font-size:.9em">--compact</code>, <code style="font-family:var(--mono);font-size:.9em">--no-color</code>, and <code style="font-family:var(--mono);font-size:.9em">--agent</code> (sets all three). The Contacts, Notes, Reminders, Calendar, and Music groups keep a local SQLite cache — run <code style="font-family:var(--mono);font-size:.9em">sync</code> once, then every read is instant and offline. Photos, Messages, Safari, Calls, Screen Time, Podcasts, and Mail read their databases directly; iCloud Drive walks the filesystem. Run <code style="font-family:var(--mono);font-size:.9em">doctor</code> to see which permissions each group needs.</p>
 
     <div class="cmd-groups">
 
@@ -1655,6 +1678,11 @@
             <span class="cmd-row-desc">List all bookmarks flattened with their folder path (parsed from Bookmarks.plist).</span>
             <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
+          <div class="cmd-row">
+            <code>safari reading-list</code>
+            <span class="cmd-row-desc">Saved-for-later articles with date added, preview, and unread state. Flag: <code style="font-family:var(--mono);font-size:.82em">--unread</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
         </div>
       </div>
 
@@ -1711,6 +1739,69 @@
           <div class="cmd-row">
             <code>screentime analytics</code>
             <span class="cmd-row-desc">Window overview: total app time, distinct apps, notifications, most-used app. Knowledge store retains ~4 weeks.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">music</div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>music sync</code>
+            <span class="cmd-row-desc">Cache your Music library (Apple Music / iCloud Music Library) via JXA — name, artist, album, genre, year, play count, rating, loved.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>music list / search</code>
+            <span class="cmd-row-desc">Most-played by default (<code style="font-family:var(--mono);font-size:.82em">--sort recent|name</code>, <code style="font-family:var(--mono);font-size:.82em">--artist</code>), or FTS5 search by name/artist/album/genre.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>music playlists / analytics</code>
+            <span class="cmd-row-desc">Playlists with track counts, and library analytics: top artists by plays, top genres, total runtime.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">podcasts</div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>podcasts shows</code>
+            <span class="cmd-row-desc">Your shows, subscribed first, with episode counts. No permission needed — reads your own container.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>podcasts episodes</code>
+            <span class="cmd-row-desc">Episodes newest-first. Flags: <code style="font-family:var(--mono);font-size:.82em">--show</code>, <code style="font-family:var(--mono);font-size:.82em">--downloaded</code>, <code style="font-family:var(--mono);font-size:.82em">--unplayed</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>podcasts analytics</code>
+            <span class="cmd-row-desc">Shows, subscriptions, episodes, downloads, and estimated listening time.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="cmd-group">
+        <div class="cmd-group-header">mail</div>
+        <div class="cmd-list">
+          <div class="cmd-row">
+            <code>mail list</code>
+            <span class="cmd-row-desc">Messages across every account (envelope metadata, not bodies), newest first. Flags: <code style="font-family:var(--mono);font-size:.82em">--unread</code>, <code style="font-family:var(--mono);font-size:.82em">--flagged</code>, <code style="font-family:var(--mono);font-size:.82em">--from</code>, <code style="font-family:var(--mono);font-size:.82em">--since</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>mail search / mailboxes</code>
+            <span class="cmd-row-desc">Search by subject or sender; list mailboxes with total + unread counts.</span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
+          </div>
+          <div class="cmd-row">
+            <code>mail analytics</code>
+            <span class="cmd-row-desc">Totals, unread, flagged, and your top senders by message volume.</span>
             <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
         </div>

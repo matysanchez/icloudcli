@@ -51,7 +51,7 @@ The leads Worker is deployed independently via `wrangler` from `/Users/matysanch
 | Group | Status | Permission | Notes |
 |---|---|---|---|
 | `doctor` | ✅ | — | Pre-flight checks for every data source + permissions |
-| `photos` | ✅ | none | top, videos, storage, stats, delete, download. `search`/`ask` still 🚧 |
+| `photos` | ✅ | none | top, videos, storage, stats, search (person/date/type/favorites/gps/near/keyword), delete, download. Only `ask` (NLP) still 🚧 |
 | `messages` | ✅ | Full Disk Access | list-chats, search, stats, audit, export. Reads `chat.db` read-only; attributedBody decoder |
 | `contacts` | ✅ | none | sync (JXA→SQLite), list, get, search (FTS5), create/update/delete, merge, duplicates, analytics |
 | `notes` | ✅ | Automation | sync (JXA→SQLite), list, get, search (FTS5), analytics |

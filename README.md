@@ -58,6 +58,8 @@ icloud-pp-cli
     videos     Largest videos (--limit, --year, --month)
     storage    Breakdown by media type and year
     stats      Total items and library size
+    search     Filter by --person, --year/--month, --type, --favorites,
+               --has-gps, --near LAT,LON --radius, --keyword
     delete     Move items to Recently Deleted (dry run until --confirm)
     download   Export originals via Photos.app (--output, --sensitive)
 

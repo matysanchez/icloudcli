@@ -1011,48 +1011,56 @@
         </div>
       </div>
 
-      <!-- 5. Location (coming) -->
+      <!-- 5. Location (live) -->
       <div class="example">
         <div class="example-header">
           <div class="example-meta">
             <div class="example-title">Search by location</div>
-            <div class="example-desc">Find all photos and videos taken in a specific city, neighborhood, or GPS bounding box.</div>
+            <div class="example-desc">Find photos and videos shot near a coordinate — a bounding-box radius search straight over the GPS data in <code style="font-family:var(--mono);font-size:.88em">Photos.sqlite</code>. Add <code style="font-family:var(--mono);font-size:.88em">--has-gps</code> for everything with a location.</div>
           </div>
-          <span class="badge badge-coming">Coming</span>
+          <span class="badge badge-live">Live</span>
         </div>
-        <div class="term">
-<span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos search --location "Miami Beach" --type video --agent</span>
-<span class="out" style="opacity:.45">[ ... videos taken in Miami Beach ... ]</span>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos search --near 25.79,-80.13 --radius 5 --type video</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">  #  Type   Size     Date        Filename       UUID</span></div>
+<div class="tl tl-out"><span class="hi">  1  video  0.04 GB  2025-07-08  IMG_3528.MOV   8F2A…</span></div>
+<div class="tl tl-out"><span class="med">  2  video  0.02 GB  2025-06-19  IMG_3401.MOV   1C7B…</span></div>
+<div class="tl tl-out"><span class="ok">  3  video  0.01 GB  2025-05-30  IMG_3310.MOV   A904…</span></div>
         </div>
       </div>
 
-      <!-- 6. Natural language (coming) -->
+      <!-- 6. People (live) -->
+      <div class="example">
+        <div class="example-header">
+          <div class="example-meta">
+            <div class="example-title">Search by person</div>
+            <div class="example-desc">Find photos featuring a named person from your People album — read from on-device face detection, with no Photos.app launch. Pipe the UUIDs straight to <code style="font-family:var(--mono);font-size:.88em">download</code>.</div>
+          </div>
+          <span class="badge badge-live">Live</span>
+        </div>
+        <div class="term" data-animate>
+<div class="tl tl-cmd"><span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos search --person "Mom" --year 2024 --json \
+  | jq -r '.[].uuid' \
+  | xargs icloud-pp-cli photos download --output ~/Desktop/mom</span></div>
+<div class="tl tl-blank">&nbsp;</div>
+<div class="tl tl-out"><span class="out">Exporting 42 item(s) to ~/Desktop/mom</span></div>
+<div class="tl tl-out"><span class="ok">  ✓ 42 exported, 0 failed.</span></div>
+        </div>
+      </div>
+
+      <!-- 7. Natural language (coming) -->
       <div class="example">
         <div class="example-header">
           <div class="example-meta">
             <div class="example-title">Natural language queries</div>
-            <div class="example-desc">Ask in plain English. Powered by local embeddings — no data leaves your Mac.</div>
+            <div class="example-desc">Ask in plain English. The one feature still on the roadmap — everything else here is live today.</div>
           </div>
           <span class="badge badge-coming">Coming</span>
         </div>
         <div class="term">
 <span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos ask "vacation videos longer than 2 minutes from last summer"</span>
 <span class="out" style="opacity:.45">[ ... matching results ... ]</span>
-        </div>
-      </div>
-
-      <!-- 7. People (coming) -->
-      <div class="example">
-        <div class="example-header">
-          <div class="example-meta">
-            <div class="example-title">Search by person</div>
-            <div class="example-desc">List or count photos featuring a named person from your Photos people album.</div>
-          </div>
-          <span class="badge badge-coming">Coming</span>
-        </div>
-        <div class="term">
-<span class="prompt">$ </span><span class="cmd">icloud-pp-cli photos search --person "Mom" --year 2023 --agent</span>
-<span class="out" style="opacity:.45">[ ... photos featuring Mom from 2023 ... ]</span>
         </div>
       </div>
 
@@ -1438,8 +1446,8 @@
           </div>
           <div class="cmd-row">
             <code>photos search</code>
-            <span class="cmd-row-desc">Search by location, date range, or person</span>
-            <span class="badge badge-coming cmd-row-badge">Coming</span>
+            <span class="cmd-row-desc">Filter by person, date, type, favorite, or location — pipes straight into download/delete. Flags: <code style="font-family:var(--mono);font-size:.82em">--person</code>, <code style="font-family:var(--mono);font-size:.82em">--year</code>, <code style="font-family:var(--mono);font-size:.82em">--month</code>, <code style="font-family:var(--mono);font-size:.82em">--type</code>, <code style="font-family:var(--mono);font-size:.82em">--favorites</code>, <code style="font-family:var(--mono);font-size:.82em">--has-gps</code>, <code style="font-family:var(--mono);font-size:.82em">--near LAT,LON --radius</code>, <code style="font-family:var(--mono);font-size:.82em">--keyword</code></span>
+            <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
           <div class="cmd-row">
             <code>photos ask</code>
@@ -1614,8 +1622,8 @@
             <span class="badge badge-live cmd-row-badge">Live</span>
           </div>
           <div class="cmd-row">
-            <code>photos search · photos ask</code>
-            <span class="cmd-row-desc">Location/person filters and natural-language queries over your library — on the roadmap.</span>
+            <code>photos ask</code>
+            <span class="cmd-row-desc">Natural-language queries over your library — the one feature still on the roadmap.</span>
             <span class="badge badge-coming cmd-row-badge">Coming</span>
           </div>
         </div>

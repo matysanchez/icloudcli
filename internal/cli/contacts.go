@@ -580,9 +580,9 @@ func newContactsUpdateCmd(f *rootFlags) *cobra.Command {
 func newContactsDeleteCmd(f *rootFlags) *cobra.Command {
 	var confirm bool
 	cmd := &cobra.Command{
-		Use:   "delete <id>",
-		Short: "Delete a contact from Contacts.app (permanent)",
-		Args:  cobra.ExactArgs(1),
+		Use:     "delete <id>",
+		Short:   "Delete a contact from Contacts.app (permanent)",
+		Args:    cobra.ExactArgs(1),
 		Example: `  icloud-pp-cli contacts delete "UUID:ABPerson" --confirm`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()

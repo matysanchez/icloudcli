@@ -940,11 +940,11 @@ func (s *contactStore) AnalyticsDomains(limit int) ([]DomainCount, error) {
 }
 
 type MissingStats struct {
-	Total    int `json:"total"`
-	NoPhone  int `json:"no_phone"`
-	NoEmail  int `json:"no_email"`
-	NoOrg    int `json:"no_org"`
-	NoName   int `json:"no_name"`
+	Total   int `json:"total"`
+	NoPhone int `json:"no_phone"`
+	NoEmail int `json:"no_email"`
+	NoOrg   int `json:"no_org"`
+	NoName  int `json:"no_name"`
 }
 
 func (s *contactStore) AnalyticsMissing() (*MissingStats, error) {

@@ -176,6 +176,41 @@ database schema, and asset count.`,
 				}
 			}
 
+			// ── Safari ────────────────────────────────────────────────
+			fmt.Fprintln(out)
+			fmt.Fprintln(out, bold(f, out, "Safari"))
+
+			safariPath := defaultSafariHistoryPath()
+			if _, err := os.Stat(safariPath); err != nil {
+				warn("History.db not present — safari history unavailable",
+					fmt.Sprintf("Expected at: %s", safariPath))
+			} else {
+				fmt.Fprintf(out, "      %s\n", safariPath)
+				sdb, sErr := openSafariHistory(safariPath)
+				switch {
+				case sErr == nil:
+					fmt.Fprintf(out, "  %s %s\n", green(f, out, "✓"), "History.db readable (Full Disk Access granted)")
+					if ov, ovErr := safariOverview(sdb); ovErr == nil {
+						fmt.Fprintf(out, "      %s URLs · %s visits · %s domains\n",
+							formatInt(ov.TotalURLs), formatInt(ov.TotalVisits), formatInt(ov.DistinctDoms))
+					}
+					sdb.Close()
+				case errors.Is(sErr, errFDADenied):
+					warn("Full Disk Access not granted — safari history unavailable",
+						"Open System Settings > Privacy & Security > Full Disk Access,\n      add your terminal app, quit and reopen the terminal, then rerun doctor.")
+				default:
+					warn("History.db cannot be opened", sErr.Error())
+				}
+			}
+
+			// ── Automation note ───────────────────────────────────────
+			fmt.Fprintln(out)
+			fmt.Fprintln(out, bold(f, out, "Automation (Notes · Reminders · Calendar)"))
+			fmt.Fprintf(out, "  %s %s\n", yellow(f, out, "i"),
+				"These groups read scriptable apps via Automation; macOS prompts on first sync.")
+			fmt.Fprintln(out, "      Approve the prompt, or pre-grant under System Settings >")
+			fmt.Fprintln(out, "      Privacy & Security > Automation > your terminal.")
+
 			// ── Result ────────────────────────────────────────────────
 			fmt.Fprintln(out)
 			if allOK {

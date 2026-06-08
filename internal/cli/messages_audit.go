@@ -69,12 +69,12 @@ to include them. Use --top N to control how many chats are listed in each
 
 // AuditResult is the full audit payload. JSON-serializable for --agent output.
 type AuditResult struct {
-	Conversations      AuditConversations   `json:"conversations"`
-	LongestByCount     []AuditChatStat      `json:"longest_by_message_count,omitempty"`
-	LongestBySpan      []AuditChatStat      `json:"longest_by_date_span,omitempty"`
-	Activity           AuditActivity        `json:"activity"`
-	MessageDistribution AuditDistribution   `json:"message_distribution"`
-	Direction          AuditDirection       `json:"direction"`
+	Conversations       AuditConversations `json:"conversations"`
+	LongestByCount      []AuditChatStat    `json:"longest_by_message_count,omitempty"`
+	LongestBySpan       []AuditChatStat    `json:"longest_by_date_span,omitempty"`
+	Activity            AuditActivity      `json:"activity"`
+	MessageDistribution AuditDistribution  `json:"message_distribution"`
+	Direction           AuditDirection     `json:"direction"`
 }
 
 // AuditConversations counts chats that have at least one real message,
@@ -87,15 +87,15 @@ type AuditConversations struct {
 
 // AuditChatStat is one row in a "longest threads" ranking.
 type AuditChatStat struct {
-	GUID            string  `json:"guid"`
-	ChatIdentifier  string  `json:"chat_identifier"`
-	DisplayName     string  `json:"display_name,omitempty"`
-	Participants    int     `json:"participants"`
-	Kind            string  `json:"kind"` // "dm" or "group"
-	MessageCount    int64   `json:"message_count"`
+	GUID             string     `json:"guid"`
+	ChatIdentifier   string     `json:"chat_identifier"`
+	DisplayName      string     `json:"display_name,omitempty"`
+	Participants     int        `json:"participants"`
+	Kind             string     `json:"kind"` // "dm" or "group"
+	MessageCount     int64      `json:"message_count"`
 	FirstMessageDate *time.Time `json:"first_message_date,omitempty"`
 	LastMessageDate  *time.Time `json:"last_message_date,omitempty"`
-	SpanDays        int     `json:"span_days"`
+	SpanDays         int        `json:"span_days"`
 }
 
 // AuditActivity reports how many chats had a real message within recent
@@ -117,9 +117,9 @@ type AuditDistribution struct {
 
 // AuditDirection splits total messages by who sent them.
 type AuditDirection struct {
-	FromMe         int64   `json:"from_me"`
-	FromOthers     int64   `json:"from_others"`
-	FromMePercent  float64 `json:"from_me_percent"`
+	FromMe        int64   `json:"from_me"`
+	FromOthers    int64   `json:"from_others"`
+	FromMePercent float64 `json:"from_me_percent"`
 }
 
 // ── runner ────────────────────────────────────────────────────────────────────

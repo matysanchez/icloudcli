@@ -13,6 +13,20 @@ import (
 
 var uuidRE = regexp.MustCompile(`^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$`)
 
+const photosDeleteScript = `
+on run argv
+	set targetUUID to item 1 of argv
+	tell application "Photos"
+	activate
+	set theItems to (media items whose id starts with targetUUID)
+	if (count of theItems) is not 1 then
+		error "Expected exactly one item for UUID " & targetUUID & ", found " & (count of theItems)
+	end if
+	delete (item 1 of theItems)
+end tell
+end run
+`
+
 func newDeleteCmd(f *rootFlags) *cobra.Command {
 	var confirm bool
 
@@ -129,18 +143,9 @@ func deleteViaPhotos(uuid string) error {
 	if !uuidRE.MatchString(uuid) {
 		return fmt.Errorf("invalid UUID %q: must be RFC 4122 hex-and-dash format", uuid)
 	}
-	script := fmt.Sprintf(`
-tell application "Photos"
-	activate
-	set theItems to (media items whose id is "%s")
-	if (count of theItems) is 0 then
-		error "Item not found: %s"
-	end if
-	delete (item 1 of theItems)
-end tell
-`, uuid, uuid)
-
-	out, err := exec.Command("osascript", "-e", script).CombinedOutput()
+	cmd := exec.Command("osascript", "-", uuid)
+	cmd.Stdin = strings.NewReader(photosDeleteScript)
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		msg := strings.TrimSpace(string(out))
 		if msg == "" {

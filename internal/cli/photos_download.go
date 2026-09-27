@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -19,6 +20,7 @@ func newDownloadCmd(f *rootFlags) *cobra.Command {
 	var confirm bool
 	var mediaType string
 	var limit int
+	var batchSize int
 
 	cmd := &cobra.Command{
 		Use:   "download [uuid...]",
@@ -104,16 +106,22 @@ Get UUIDs from any read command:
 				)
 			}
 			fmt.Fprintln(out)
+			if batchSize < 1 {
+				batchSize = 1
+			}
 			exported, failed := 0, 0
-			for i, a := range assets {
-				fmt.Fprintf(out, "  [%d/%d] %s … ", i+1, len(assets), a.Filename)
-				uuidName, err := exportOne(a, abs)
-				if err != nil {
-					fmt.Fprintf(out, "%s %v\n", red(f, out, "✗"), err)
-					failed++
-				} else {
-					fmt.Fprintf(out, "%s → %s\n", green(f, out, "✓"), uuidName)
-					exported++
+			for start := 0; start < len(assets); start += batchSize {
+				batch := assets[start:min(start+batchSize, len(assets))]
+				results := exportBatch(batch, abs)
+				for j, a := range batch {
+					fmt.Fprintf(out, "  [%d/%d] %s … ", start+j+1, len(assets), a.Filename)
+					if r := results[j]; r.Err != nil {
+						fmt.Fprintf(out, "%s %v\n", red(f, out, "✗"), r.Err)
+						failed++
+					} else {
+						fmt.Fprintf(out, "%s → %s\n", green(f, out, "✓"), r.Name)
+						exported++
+					}
 				}
 			}
 
@@ -131,89 +139,184 @@ Get UUIDs from any read command:
 	cmd.Flags().BoolVar(&confirm, "confirm", false, "Required when using --sensitive: acknowledge export of nudity-flagged content")
 	cmd.Flags().StringVar(&mediaType, "type", "all", "Media type when using --sensitive: all, photo, video")
 	cmd.Flags().IntVar(&limit, "limit", 10, "Max items to export when using --sensitive (0 = all)")
+	cmd.Flags().IntVar(&batchSize, "batch-size", 10, "Items exported per Photos.app (osascript) session")
 
 	return cmd
 }
 
-// exportOne exports a single asset to destDir via Photos.app AppleScript.
-// Photos.app downloads the original from iCloud if needed before exporting.
-// Returns the final UUID-based filename on success.
-func exportOne(a Asset, destDir string) (string, error) {
-	if !uuidRE.MatchString(a.UUID) {
-		return "", fmt.Errorf("invalid UUID %q", a.UUID)
-	}
+// exportScript exports each UUID in argv[2:] into its own subfolder
+// <argv[1]>/<uuid>/ (created beforehand by the caller). Exporting into an empty
+// folder means original-filename collisions (IMG_6963.JPG from different years)
+// can't make Photos.app overwrite or rename a file we then fail to detect.
+// Prints one "OK\t<uuid>" or "ERR\t<uuid>\t<message>" line per item.
+const exportScript = `on run argv
+	set rootPath to item 1 of argv
+	set results to {}
+	repeat with i from 2 to count of argv
+		set u to item i of argv
+		set destFolder to POSIX file (rootPath & "/" & u)
+		try
+			set m to my findItem(u)
+			tell application "Photos"
+				with timeout of 3600 seconds
+					export {m} to destFolder using originals true
+				end timeout
+			end tell
+			set end of results to "OK" & tab & u
+		on error errMsg
+			set end of results to "ERR" & tab & u & tab & errMsg
+		end try
+	end repeat
+	set AppleScript's text item delimiters to linefeed
+	return results as text
+end run
 
-	// Snapshot directory before so we can detect the new file.
-	before, _ := listDir(destDir)
+on findItem(u)
+	tell application "Photos"
+		-- Direct lookup by local identifier; avoids scanning the whole library.
+		try
+			set m to media item id (u & "/L0/001")
+			get id of m
+			return m
+		end try
+		set found to (media items whose id starts with u)
+		if (count of found) is 0 then error "item not found: " & u
+		return item 1 of found
+	end tell
+end findItem`
 
-	// Pass destDir and UUID as separate -e arguments to avoid any quoting issues
-	// inside the AppleScript string literal (e.g. paths with double quotes).
-	script := fmt.Sprintf(`tell application "Photos"
-	activate
-	set found to (media items whose id starts with "%s")
-	if (count of found) is 0 then
-		error "item not found: %s"
-	end if
-	export {item 1 of found} to destArg using originals true
-end tell`, a.UUID, a.UUID)
+type exportResult struct {
+	Name string // final <UUID>.<ext> filename in destDir
+	Err  error
+}
 
-	raw, err := exec.Command("osascript",
-		"-e", fmt.Sprintf(`set destArg to POSIX file %q`, destDir),
-		"-e", script,
-	).CombinedOutput()
+var errNotExported = fmt.Errorf("file not found after export — iCloud download may have timed out")
+
+// exportBatch exports assets to destDir in a single osascript session.
+// Photos.app downloads originals from iCloud if needed before exporting.
+// Results are returned in the same order as assets.
+func exportBatch(assets []Asset, destDir string) []exportResult {
+	results := make([]exportResult, len(assets))
+
+	workDir, err := os.MkdirTemp(destDir, "icloud-pp-export-")
 	if err != nil {
-		msg := strings.TrimSpace(string(raw))
-		if msg == "" {
-			msg = err.Error()
+		for i := range results {
+			results[i].Err = fmt.Errorf("cannot create temp dir: %w", err)
 		}
-		return "", fmt.Errorf("%s", msg)
+		return results
 	}
+	defer os.RemoveAll(workDir)
+
+	args := []string{"-e", exportScript, workDir}
+	for i, a := range assets {
+		if !uuidRE.MatchString(a.UUID) {
+			results[i].Err = fmt.Errorf("invalid UUID %q", a.UUID)
+			continue
+		}
+		if err := os.Mkdir(filepath.Join(workDir, a.UUID), 0o755); err != nil && !os.IsExist(err) {
+			results[i].Err = fmt.Errorf("cannot create temp dir: %w", err)
+			continue
+		}
+		args = append(args, a.UUID)
+	}
+	if len(args) == 3 {
+		return results
+	}
+
+	var stdout, stderr bytes.Buffer
+	c := exec.Command("osascript", args...)
+	c.Stdout, c.Stderr = &stdout, &stderr
+	runErr := c.Run()
+	status := parseExportOutput(stdout.String())
 
 	// Give the filesystem a moment to flush.
 	time.Sleep(200 * time.Millisecond)
 
-	after, _ := listDir(destDir)
-
-	// Find the newly appeared file by exact (case-insensitive) filename match.
-	// We intentionally avoid extension-only fallbacks: if two assets share the same
-	// extension we would silently attribute the wrong file to the wrong UUID.
-	matchedName := ""
-	lower := strings.ToLower(a.Filename)
-	for name := range after {
-		if before[name] {
+	for i, a := range assets {
+		if results[i].Err != nil {
 			continue
 		}
-		if strings.ToLower(name) == lower {
-			matchedName = name
-			break
+		st, reported := status[a.UUID]
+		if reported && st != "" {
+			results[i].Err = fmt.Errorf("%s", st)
+			continue
 		}
+		name, err := moveExported(filepath.Join(workDir, a.UUID), destDir, a)
+		if err == errNotExported && !reported && runErr != nil {
+			// osascript died before reaching this item; surface why.
+			msg := strings.TrimSpace(stderr.String())
+			if msg == "" {
+				msg = runErr.Error()
+			}
+			err = fmt.Errorf("%s", msg)
+		}
+		results[i] = exportResult{Name: name, Err: err}
 	}
-	if matchedName == "" {
-		return "", fmt.Errorf("file not found after export — iCloud download may have timed out")
-	}
+	return results
+}
 
-	// Rename to <UUID>.<lowercased-ext>.
-	ext := strings.ToLower(filepath.Ext(matchedName))
-	uuidName := a.UUID + ext
-	oldPath := filepath.Join(destDir, matchedName)
-	newPath := filepath.Join(destDir, uuidName)
-	if oldPath != newPath {
-		if err := os.Rename(oldPath, newPath); err != nil {
-			return "", fmt.Errorf("exported but rename failed: %w", err)
+// parseExportOutput maps UUID → error message ("" for success) from the
+// OK/ERR lines printed by exportScript. UUIDs with no line are absent.
+func parseExportOutput(s string) map[string]string {
+	m := make(map[string]string)
+	for _, line := range strings.Split(s, "\n") {
+		parts := strings.SplitN(strings.TrimRight(line, "\r"), "\t", 3)
+		switch {
+		case len(parts) >= 2 && parts[0] == "OK":
+			m[parts[1]] = ""
+		case len(parts) >= 2 && parts[0] == "ERR":
+			msg := "export failed"
+			if len(parts) == 3 && strings.TrimSpace(parts[2]) != "" {
+				msg = strings.TrimSpace(parts[2])
+			}
+			m[parts[1]] = msg
 		}
+	}
+	return m
+}
+
+// moveExported finds the file Photos.app exported into srcDir and moves it to
+// destDir/<UUID>.<lowercased-ext>. Returns the final filename.
+func moveExported(srcDir, destDir string, a Asset) (string, error) {
+	name, err := pickExported(srcDir, a.Filename)
+	if err != nil {
+		return "", err
+	}
+	uuidName := a.UUID + strings.ToLower(filepath.Ext(name))
+	if err := os.Rename(filepath.Join(srcDir, name), filepath.Join(destDir, uuidName)); err != nil {
+		return "", fmt.Errorf("exported but rename failed: %w", err)
 	}
 	return uuidName, nil
 }
 
-// listDir returns a set of filenames (not full paths) in dir.
-func listDir(dir string) (map[string]bool, error) {
+// pickExported returns the exported file in dir, which holds the export of a
+// single asset. Sidecars (.aae) and hidden files are ignored. If several files
+// remain (e.g. a Live Photo's image + .mov), the one matching want
+// (case-insensitive) is chosen.
+func pickExported(dir, want string) (string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, err
+		return "", errNotExported
 	}
-	m := make(map[string]bool, len(entries))
+	var candidates []string
 	for _, e := range entries {
-		m[e.Name()] = true
+		name := e.Name()
+		if !e.Type().IsRegular() || strings.HasPrefix(name, ".") ||
+			strings.EqualFold(filepath.Ext(name), ".aae") {
+			continue
+		}
+		candidates = append(candidates, name)
 	}
-	return m, nil
+	switch len(candidates) {
+	case 0:
+		return "", errNotExported
+	case 1:
+		return candidates[0], nil
+	}
+	for _, name := range candidates {
+		if strings.EqualFold(name, want) {
+			return name, nil
+		}
+	}
+	return "", fmt.Errorf("ambiguous export: %s", strings.Join(candidates, ", "))
 }

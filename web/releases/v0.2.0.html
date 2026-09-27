@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>icloudcli 0.2.0 — Release notes</title>
+  <meta name="description" content="icloudcli 0.2.0: reliable photos download for libraries with duplicate filenames, faster exports, and every command group added since 0.1.0.">
+  <link rel="canonical" href="https://icloudcli.com/releases/v0.2.0">
+  <meta property="og:title" content="icloudcli 0.2.0">
+  <meta property="og:description" content="Reliable photos download for libraries with duplicate filenames, faster exports, and a dozen new command groups.">
+  <meta property="og:url" content="https://icloudcli.com/releases/v0.2.0">
+  <meta property="og:type" content="article">
+  <meta property="og:image" content="https://icloudcli.com/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://icloudcli.com/og.png">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☁️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'Geist Pixel';
+      src: url('https://cdn.jsdelivr.net/gh/vercel/geist-font@main/packages/next/dist/fonts/geist-pixel/GeistPixel-Square.woff2') format('woff2');
+      font-weight: 400 700;
+      font-display: swap;
+    }
+    :root {
+      --bg: #ffffff; --bg-raised: #f7f7f7; --border: #e8e8e8;
+      --text: #111111; --text-muted: #6b6b6b; --accent: #0070f3;
+      --term-bg: #0d1117; --term-text: #e6edf3; --term-prompt: #58a6ff; --term-output: #8b949e;
+      --radius: 10px;
+      --mono: 'SF Mono', 'Geist Mono', 'Cascadia Code', 'Fira Code', ui-monospace, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      --pixel: 'Geist Pixel', 'Pixelify Sans', var(--mono);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0a0a0a; --bg-raised: #141414; --border: #242424;
+        --text: #ededed; --text-muted: #888888; --accent: #3b82f6;
+      }
+    }
+    [data-theme="dark"] {
+      --bg: #0a0a0a; --bg-raised: #141414; --border: #242424;
+      --text: #ededed; --text-muted: #888888; --accent: #3b82f6;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--sans); background: var(--bg); color: var(--text);
+      line-height: 1.7; -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .container { max-width: 680px; margin: 0 auto; padding: 0 16px; }
+    nav { border-bottom: 1px solid var(--border); }
+    nav .container { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .nav-logo { font-family: var(--pixel); font-size: 1.45rem; font-weight: 700; color: var(--text); }
+    .nav-logo:hover { text-decoration: none; }
+    .nav-link { color: var(--text-muted); font-size: .9rem; }
+    article { padding: 56px 0 72px; }
+    .meta { font-family: var(--mono); font-size: .8rem; color: var(--text-muted); margin-bottom: 12px; }
+    h1 { font-family: var(--pixel); font-size: 2.4rem; line-height: 1.15; margin-bottom: 20px; text-wrap: balance; }
+    h2 { font-size: 1.15rem; margin: 40px 0 12px; }
+    p, ul { margin-bottom: 16px; }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 6px; }
+    .lead { font-size: 1.1rem; color: var(--text-muted); }
+    code {
+      font-family: var(--mono); font-size: .88em;
+      background: var(--bg-raised); border: 1px solid var(--border);
+      border-radius: 5px; padding: 1px 5px;
+    }
+    pre {
+      background: var(--term-bg); color: var(--term-text);
+      border-radius: var(--radius); padding: 16px 18px; margin: 0 0 16px;
+      overflow-x: auto; font-family: var(--mono); font-size: .85rem; line-height: 1.6;
+    }
+    pre code { background: none; border: 0; padding: 0; font-size: inherit; color: inherit; }
+    .prompt { color: var(--term-prompt); }
+    .out { color: var(--term-output); }
+    footer { border-top: 1px solid var(--border); padding: 24px 0; font-size: .85rem; color: var(--text-muted); }
+    footer .container { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    @media (max-width: 520px) { h1 { font-size: 1.9rem; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a class="nav-logo" href="/">icloudcli</a>
+    <a class="nav-link" href="https://github.com/matysanchez/icloudcli/releases/tag/v0.2.0">GitHub release</a>
+  </div>
+</nav>
+
+<main class="container">
+  <article>
+    <div class="meta">v0.2.0 · September 27, 2026</div>
+    <h1>icloudcli 0.2.0</h1>
+    <p class="lead">Bulk photo exports that don’t trip over duplicate filenames, faster downloads, and a dozen new command groups since 0.1.0.</p>
+
+    <h2>photos download handles duplicate filenames</h2>
+    <p>Cameras reuse filenames, so a large library will contain several different photos all named <code>IMG_6963.JPG</code>. Previously, <code>photos download</code> exported into one shared folder. When two assets had the same name, Photos.app overwrote or renamed the file, and the export failed with <em>“file not found after export”</em>, even on retry. In one 1,300-photo run, 18 items failed this way every time.</p>
+    <p>Each asset is now exported into its own empty folder and then moved to <code>&lt;uuid&gt;.&lt;ext&gt;</code> in your output directory. Output naming is unchanged.</p>
+
+    <h2>Faster exports</h2>
+    <ul>
+      <li>Items are fetched directly by ID instead of scanning the whole library, which saved several seconds per item on a 130k-item library.</li>
+      <li>Photos.app no longer jumps to the front for every item.</li>
+      <li>Several items are exported per Photos.app session. Tune it with <code>--batch-size</code> (default 10).</li>
+      <li>Large iCloud originals get up to an hour to download instead of AppleScript’s two-minute default.</li>
+    </ul>
+<pre><code><span class="prompt">$ </span>icloud-pp-cli photos top --limit 500 --json \
+    | jq -r '.[].uuid' \
+    | xargs icloud-pp-cli photos download --output ~/Desktop/export</code></pre>
+
+    <h2>Also new since 0.1.0</h2>
+    <ul>
+      <li><strong>Photos:</strong> <code>search</code> by person, date, type, favorites, GPS, or keyword, plus <code>download</code>.</li>
+      <li><strong>Messages:</strong> list chats, search, stats, audit, and export.</li>
+      <li><strong>Contacts, Notes, Reminders, Calendar:</strong> sync to a local SQLite cache with full-text search and analytics.</li>
+      <li><strong>Safari:</strong> history, top sites, bookmarks, and reading list.</li>
+      <li><strong>Calls, iCloud Drive, Screen Time, Music, Podcasts, Mail:</strong> new command groups, all checked by <code>doctor</code>.</li>
+    </ul>
+
+    <h2>Upgrade</h2>
+<pre><code><span class="prompt">$ </span>curl -fsSL https://icloudcli.com/install.sh | sh
+<span class="prompt">$ </span>icloud-pp-cli --version
+<span class="out">icloud-pp-cli version 0.2.0</span></code></pre>
+    <p>Full changelog on <a href="https://github.com/matysanchez/icloudcli/releases/tag/v0.2.0">GitHub</a>. Found a bug? <a href="https://github.com/matysanchez/icloudcli/issues">Open an issue</a>.</p>
+  </article>
+</main>
+
+<footer>
+  <div class="container">
+    <span><span style="font-family:var(--pixel)">icloudcli</span> · Apache-2.0 · macOS only</span>
+    <a href="/">← Back to icloudcli.com</a>
+  </div>
+</footer>
+
+<script>
+  try {
+    const t = localStorage.getItem('theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (_) {}
+</script>
+</body>
+</html>
